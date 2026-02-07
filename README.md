@@ -1,20 +1,178 @@
-<<<<<<< HEAD
-# React + Vite
+QuizApp is a full stack learning platform designed to help students understand frontend, backend, and database concepts through structured lessons and interactive quizzes. It covers HTML, CSS, JavaScript, React, Node.js, REST APIs, SQL, and MongoDB with quizzes available at basic, medium, and hard difficulty levels.
+## 📚 Learning Sections Covered
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project is designed to help learners understand full stack development step by step. It covers frontend, backend, and database with quizzes at different difficulty levels.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🎨 Frontend Development
 
-## React Compiler
+Learn how to build the user interface of websites and apps.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+**Topics included**
 
-## Expanding the ESLint configuration
+* HTML basics and page structure
+* CSS styling, layouts, and responsive design
+* JavaScript fundamentals and DOM manipulation
+* React for building modern interactive user interfaces
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-=======
-# QuizApp
->>>>>>> ac17c771764202812d8fad41dda3b00ff91d04e9
+You will understand how websites look, feel, and respond to user actions.
+
+---
+
+### ⚙️ Backend Development
+
+Learn how the server works behind the scenes.
+
+**Topics included**
+
+* Node.js basics
+* Creating servers and handling requests
+* Building REST APIs
+* Connecting frontend with backend
+
+You will learn how data moves between users and the server.
+
+---
+
+### 🗄️ Database
+
+Learn how to store and manage application data.
+
+**Topics included**
+
+* SQL basics (tables, queries, relationships)
+* MongoDB basics (collections, documents)
+* Connecting database with backend
+
+You will understand how user data, quiz data, and results are stored.
+
+---
+
+## 🧠 Quiz System
+
+Each subject includes quizzes to test understanding.
+
+**Quiz Levels**
+
+* **Basic** – For beginners who are just starting
+* **Medium** – For learners with some practice
+* **Hard** – For advanced learners who want a challenge
+
+This helps users move from simple concepts to advanced problem solving.
+
+---
+
+## 🎯 Goal of This Project
+
+The goal is to provide structured learning with practice. Instead of only reading theory, learners can study topics and test themselves through quizzes at different difficulty levels.
+
+---
+🚀 Project Features
+
+Structured learning path for frontend, backend, and databases
+
+Topic wise quizzes to test understanding
+
+Three difficulty levels for each quiz
+
+Instant feedback after answering questions
+
+Score tracking to measure progress
+
+Clean and simple user interface
+
+🛠️ Tech Stack
+
+Frontend
+
+HTML
+
+CSS
+
+JavaScript
+
+React
+
+Backend
+
+Node.js
+
+Express.js
+
+REST API
+
+Database
+
+MongoDB
+
+SQL
+
+💻 How to Run This Project Locally
+
+Follow these steps to run the project on your system.
+
+1. Clone the repository
+git clone https://github.com/your-username/your-repo-name.git
+cd your-repo-name
+
+2. Install dependencies
+
+For frontend and backend (if separate folders, run in both):
+
+npm install
+
+3. Start the backend server
+npm start
+
+
+or
+
+nodemon server.js
+
+4. Start the frontend
+npm start
+
+
+The app should now run in your browser.
+
+📊 Quiz Difficulty Levels
+Level	Description
+Basic	Tests fundamental concepts and simple understanding
+Medium	Covers practical usage and mixed concepts
+Hard	Focuses on advanced logic and deep understanding
+🎓 Who This Project Is For
+
+Beginners learning web development
+
+Students preparing for exams or interviews
+
+Anyone who wants to practice full stack concepts
+
+Learners who prefer practice along with theory
+
+📌 Future Improvements
+
+Add user login and authentication
+
+Add leaderboard and ranking system
+
+Add timer based quizzes
+
+Add more advanced question sets
+
+Improve UI and animations
+
+🤝 Contribution
+
+Contributions are welcome.
+
+If you want to improve this project:
+
+Fork the repository
+
+Create a new branch
+
+Make your changes
+
+Submit a pull request
