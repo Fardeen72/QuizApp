@@ -202,6 +202,8 @@ DELETE → DELETE /api/products/1`}</CodeBlock>
               <li>Secure APIs with authentication</li>
               <li>Use versioning ( /api/v1/ )</li>
               <li>Handle errors consistently</li>
+              hiigit add .
+
             </ul>
           </Section>
 
