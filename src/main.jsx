@@ -11,46 +11,53 @@ import {
 
 import "./index.css";
 import Layout from "./Layout.jsx";
+
+// Core pages
 import Home from "./components/Home/Home.jsx";
 import About from "./components/About/About.jsx";
 import Contact from "./components/Contact/Contact.jsx";
+
+// Questions (QUIZZES)
 import Html from "./components/Questions/Html.jsx";
-import Card from "./components/Cards/Card.jsx";
-import ReactQuesion from "./components/Questions/React.jsx";
 import Css from "./components/Questions/Css.jsx";
-import JS from "./components/Questions/js.jsx";
+import Js from "./components/Questions/Js.jsx";
+import ReactQuestion from "./components/Questions/React.jsx";
 import PythonQuestion from "./components/Questions/Python.jsx";
 import JavaQuestion from "./components/Questions/Java.jsx";
+import NodeQuiz from "./components/Questions/Node.jsx";
+import TailwindQuiz from "./components/Questions/tailwind.jsx";
+import MongodbQuiz from "./components/Questions/mongo.jsx";
+import RestApiQuiz from "./components/Questions/RestApi.jsx";
+
+// Learning pages
 import HtmlLearn from "./components/Questions/HtmlLearn.jsx";
 import CssLearn from "./components/Questions/CssLearn.jsx";
 import JsLearn from "./components/Questions/Jslearn.jsx";
 import ReactLearn from "./components/Questions/Reactlearn.jsx";
 import PythonLearn from "./components/Questions/Pythonlearn.jsx";
 import JavaLearn from "./components/Questions/Javalearn.jsx";
-import LoginButton from "./components/Contact/LoginWithgoogle.jsx";
-import NavbarProfile from "./components/Contact/LoginWithgoogle.jsx";
-import Leaderboard from "./leaderbord.jsx";
-import CoursesCard from "./components/Tutorials/Tutorials.jsx";
-import ChallengePage from "./components/Home/Addon.jsx";
-import BlogPage from "./blog.jsx";
 import TailwindLearn from "./components/Questions/tailwindlearn.jsx";
 import GitGithubLearn from "./components/Questions/Gitlearn.jsx";
 import FirebaseLearn from "./components/Questions/Firebase.jsx";
-import QuizCard from "./components/Cards/Card.jsx";
 import DSALearn from "./components/Questions/dsalearn.jsx";
 import NodeLearn from "./components/Questions/Nodelean.jsx";
 import RESTLearn from "./components/Questions/Restlrarn.jsx";
-import NodeQuiz from "./components/Questions/Node.jsx";
-import TailwindQuiz from "./components/Questions/tailwind.jsx";
-import MongodbQuiz from "./components/Questions/mongo.jsx";
-import SqlLearn from "./components/Tutorials/sqllearn.jsx";
-import MongoDBLearn from "./components/Tutorials/monogodblearn.jsx";
-import TypeScriptLearn from "./components/Tutorials/typescriptlearm.jsx";
-import RestApiQuiz from "./components/Questions/RestApi.jsx";
-import CheatsheetsPage from "./components/cheatsheet.jsx";
-import Compountes from "./components/Compountes.jsx";
-import QuizzCard from "./components/Cards/Card.jsx";
+
+// Cards & Tutorials
+import QuizCard from "./components/Cards/Card.jsx";
 import TutorialsCard from "./components/Tutorials/Tutorials.jsx";
+import CoursesCard from "./components/Tutorials/Tutorials.jsx";
+
+// Other pages
+import Leaderboard from "./leaderbord.jsx";
+import BlogPage from "./blog.jsx";
+import ChallengePage from "./components/Home/Addon.jsx";
+import CheatsheetsPage from "./components/cheatsheet.jsx";
+import Components from "./components/Compountes.jsx";
+
+// Auth
+import LoginButton from "./components/Contact/LoginWithgoogle.jsx";
+import NavbarProfile from "./components/Contact/LoginWithgoogle.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
