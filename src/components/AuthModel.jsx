@@ -10,7 +10,7 @@ import {
   updateProfile,
   sendPasswordResetEmail
 } from "firebase/auth";
-import { auth, googleProvider } from "@/firebase";
+import { auth, googleProvider } from "@/Firebase";
 
 export default function AuthModal({ close }) {
   const [isLogin, setIsLogin] = useState(true);
