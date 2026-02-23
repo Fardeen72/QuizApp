@@ -10,7 +10,7 @@ export default function Home() {
     <>
     <About/>
       {/* <HowItWorks/> */}
-       <CoursesCard/>
+       {/* <CoursesCard/> */}
     </>
   
 

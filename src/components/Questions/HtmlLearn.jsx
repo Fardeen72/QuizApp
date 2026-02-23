@@ -102,8 +102,11 @@ function HtmlLearn() {
     const blockId = `code-${id}`;
     const isCopied = copiedId === blockId;
 
-    return (
+    return ( <>
+      
       <div className="space-y-3">
+
+
         <div className="rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           <div className="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200">
             <span className="text-xs font-semibold text-slate-600">Code</span>
@@ -143,7 +146,7 @@ function HtmlLearn() {
           </div>
         )}
       </div>
-    );
+   </> );
   };
 
   const Section = ({ id, title, children }) => (

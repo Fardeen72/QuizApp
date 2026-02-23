@@ -43,6 +43,14 @@ import RESTLearn from "./components/Questions/Restlrarn.jsx";
 import NodeQuiz from "./components/Questions/Node.jsx";
 import TailwindQuiz from "./components/Questions/tailwind.jsx";
 import MongodbQuiz from "./components/Questions/mongo.jsx";
+import SqlLearn from "./components/Tutorials/sqllearn.jsx";
+import MongoDBLearn from "./components/Tutorials/monogodblearn.jsx";
+import TypeScriptLearn from "./components/Tutorials/typescriptlearm.jsx";
+import RestApiQuiz from "./components/Questions/RestApi.jsx";
+import CheatsheetsPage from "./components/cheatsheet.jsx";
+import Compountes from "./components/Compountes.jsx";
+import QuizzCard from "./components/Cards/Card.jsx";
+import TutorialsCard from "./components/Tutorials/Tutorials.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -51,16 +59,17 @@ const router = createBrowserRouter(
       <Route path="about" element={<About />} />
       <Route path="contact" element={<Contact />} />
       <Route path="loginbutton" element={<NavbarProfile />} />
-      <Route path="addon" element={<ChallengePage />} />
+      <Route path="challenge" element={<ChallengePage />} />
       <Route path="htmllearn" element={<HtmlLearn />} />
       <Route path="blog" element={<BlogPage />} />
       <Route path="leaderboard" element={<Leaderboard />} />
-      <Route path="card" element={<QuizCard />} />
-      <Route path="tutorials" element={<QuizCard />} />
+  
+      <Route path="tutorials" element={<TutorialsCard />} />
       <Route path="csslearn" element={<CssLearn />} />
       <Route path="jslearn" element={<JsLearn />} />
       <Route path="reactlearn" element={<ReactLearn />} />
-      <Route path="quizzes" element={<HtmlLearn />} />
+      <Route path="quizzses" element={<HtmlLearn />} />
+       <Route path="sqllearn" element={<SqlLearn />} />
       <Route path="html" element={<Html />} />
       <Route path="react" element={<ReactQuesion />} />
       <Route path="css" element={<Css />} />
@@ -78,6 +87,12 @@ const router = createBrowserRouter(
       <Route path="nodequiz" element={<NodeQuiz />} />
       <Route path="tailwind" element={<TailwindQuiz />} />
       <Route path="mongodbquiz" element={<MongodbQuiz />} />
+        <Route path="typescriptlearn" element={<TypeScriptLearn/>} />
+       <Route path="mongodblearn" element={<MongoDBLearn/>} />
+         <Route path="cheatsheet" element={<CheatsheetsPage/>} />
+        <Route path="restquiz" element={<RestApiQuiz/>} />
+         <Route path="components" element={<Compountes/>} />
+           <Route path="cards" element={<QuizzCard/>} />
     </Route>,
   ),
 );

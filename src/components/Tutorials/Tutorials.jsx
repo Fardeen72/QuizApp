@@ -1,8 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { auth } from "@/firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
-import AuthModal from "@/components/AuthModel";
 
 const courses = [
   {
@@ -16,6 +13,7 @@ const courses = [
     topics: ["Tags & Elements", "Forms", "Semantic HTML"],
     duration: "2-3 hours",
     lessons: 15,
+    accent: "#E34F26",
   },
   {
     id: "css",
@@ -28,6 +26,7 @@ const courses = [
     topics: ["Selectors", "Flexbox", "Grid", "Animations"],
     duration: "3-4 hours",
     lessons: 18,
+    accent: "#264DE4",
   },
   {
     id: "javascript",
@@ -40,6 +39,7 @@ const courses = [
     topics: ["ES6+", "DOM", "Async/Await", "APIs"],
     duration: "5-6 hours",
     lessons: 25,
+    accent: "#D4A017",
   },
   {
     id: "python",
@@ -52,6 +52,7 @@ const courses = [
     topics: ["Syntax", "Data Types", "Functions", "OOP"],
     duration: "4-5 hours",
     lessons: 20,
+    accent: "#3776AB",
   },
   {
     id: "tailwind",
@@ -64,6 +65,7 @@ const courses = [
     topics: ["Utility Classes", "Flexbox & Grid", "Responsive Design", "Customization"],
     duration: "4-6 hours",
     lessons: 22,
+    accent: "#0EA5E9",
   },
   {
     id: "react",
@@ -76,6 +78,7 @@ const courses = [
     topics: ["Hooks", "Components", "State", "Props"],
     duration: "6-8 hours",
     lessons: 30,
+    accent: "#38BDF8",
   },
   {
     id: "gitgithub",
@@ -84,22 +87,24 @@ const courses = [
     quizPath: "/gitgithub",
     learnPath: "/gitgithublearn",
     level: "Beginner",
-    description: "Version control and team collaboration using Git and GitHub",
+    description: "Version control and team collaboration",
     topics: ["Git Basics", "Branching", "Merging", "Pull Requests"],
     duration: "3-5 hours",
     lessons: 18,
+    accent: "#F05032",
   },
   {
     id: "nodejs",
     title: "Node.js",
     img: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/nodejs/nodejs-original.svg",
-    quizPath: "/nodejs",
+    quizPath: "/nodequiz",
     learnPath: "/nodelearn",
     level: "Advanced",
     description: "Server-side JavaScript runtime for scalable apps",
     topics: ["Express", "REST APIs", "Middleware", "Authentication"],
     duration: "8-10 hours",
     lessons: 40,
+    accent: "#339933",
   },
   {
     id: "restapi",
@@ -108,10 +113,11 @@ const courses = [
     quizPath: "/restapi",
     learnPath: "/restapilearn",
     level: "Intermediate",
-    description: "Design and build APIs to connect frontend and backend systems",
+    description: "Design and build APIs connecting frontend and backend",
     topics: ["HTTP Methods", "Routing", "Status Codes", "API Authentication"],
     duration: "4-6 hours",
     lessons: 20,
+    accent: "#8B5CF6",
   },
   {
     id: "firebase",
@@ -120,10 +126,11 @@ const courses = [
     quizPath: "/firebase",
     learnPath: "/firebaselearn",
     level: "Intermediate",
-    description: "Backend-as-a-service for authentication, database, and hosting",
+    description: "Backend-as-a-service for auth, database, and hosting",
     topics: ["Authentication", "Firestore Database", "Hosting", "Security Rules"],
     duration: "5-7 hours",
     lessons: 26,
+    accent: "#F59E0B",
   },
   {
     id: "sql",
@@ -136,18 +143,20 @@ const courses = [
     topics: ["SELECT Queries", "Joins", "Indexes", "Normalization"],
     duration: "5-7 hours",
     lessons: 28,
+    accent: "#00758F",
   },
   {
     id: "mongodb",
     title: "MongoDB",
     img: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mongodb/mongodb-original.svg",
-    quizPath: "/mongodb",
+    quizPath: "/mongodbquiz",
     learnPath: "/mongodblearn",
     level: "Intermediate",
     description: "NoSQL document database for modern web applications",
-    topics: ["Documents & Collections", "CRUD Operations", "Indexes", "Mongoose with Node"],
+    topics: ["Documents & Collections", "CRUD Operations", "Indexes", "Mongoose"],
     duration: "5-7 hours",
     lessons: 25,
+    accent: "#47A248",
   },
   {
     id: "dsa",
@@ -156,10 +165,11 @@ const courses = [
     quizPath: "/dsa",
     learnPath: "/dsalearn",
     level: "Advanced",
-    description: "Core problem-solving skills using data structures and algorithms",
-    topics: ["Arrays & Strings", "Linked List", "Stack & Queue", "Sorting & Searching"],
+    description: "Core problem-solving with data structures & algorithms",
+    topics: ["Arrays & Strings", "Linked List", "Stack & Queue", "Sorting"],
     duration: "10-15 hours",
     lessons: 50,
+    accent: "#EF4444",
   },
   {
     id: "typescript",
@@ -168,10 +178,11 @@ const courses = [
     quizPath: "/typescript",
     learnPath: "/typescriptlearn",
     level: "Intermediate",
-    description: "Strongly typed JavaScript for scalable and maintainable applications",
-    topics: ["Types", "Interfaces", "Functions", "Using with React & Node"],
+    description: "Strongly typed JavaScript for scalable applications",
+    topics: ["Types", "Interfaces", "Functions", "React & Node"],
     duration: "6-8 hours",
     lessons: 30,
+    accent: "#3178C6",
   },
   {
     id: "java",
@@ -184,144 +195,451 @@ const courses = [
     topics: ["Classes", "Inheritance", "Collections", "Threads"],
     duration: "7-9 hours",
     lessons: 35,
-  }
+    accent: "#ED8B00",
+  },
 ];
 
+const LEVEL_META = {
+  Beginner:     { color: "#059669", bg: "#F0FDF9", border: "#A7F3D0" },
+  Intermediate: { color: "#B45309", bg: "#FFFBEB", border: "#FDE68A" },
+  Advanced:     { color: "#DC2626", bg: "#FEF2F2", border: "#FECACA" },
+};
 
-export default function QuizCard() {
-  const [user, setUser] = useState(null);
-  const [showLogin, setShowLogin] = useState(false);
+export default function TutorialsCard() {
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => setLoading(false), 800);
   }, []);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsub();
-  }, []);
-
-  const handleStartLearning = (path) => navigate(path);
-
-  const getLevelColor = (level) => {
-    switch (level) {
-      case "Beginner":
-        return "bg-emerald-50 text-emerald-700 border-emerald-200";
-      case "Intermediate":
-        return "bg-amber-50 text-amber-700 border-amber-200";
-      case "Advanced":
-        return "bg-rose-50 text-rose-700 border-rose-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
-    }
-  };
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50">
-        {/* Hero Section */}
-        <div className="bg-gradient-to-br from-indigo-700 via-blue-700 to-indigo-800 text-white py-20 px-6 shadow-lg">
-          <div className="max-w-6xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Explore Developer Courses
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@300;400;500&display=swap');
+
+        .qc-page {
+          min-height: 100vh;
+          background: #FAFAF7;
+          font-family: 'Inter', system-ui, sans-serif;
+          color: #1C1917;
+          -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── HERO (unchanged structure) ── */
+        .qc-hero {
+          position: relative;
+          background: #0F0F0F;
+          color: white;
+          overflow: hidden;
+        }
+        .qc-hero-glow {
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(ellipse 60% 80% at 80% 50%, rgba(99,102,241,0.18), transparent 70%),
+            radial-gradient(ellipse 40% 60% at 20% 20%, rgba(16,185,129,0.12), transparent 60%);
+        }
+        .qc-hero-inner {
+          position: relative;
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: 76px 24px 68px;
+        }
+        .qc-hero-eyebrow {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 11px;
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.45);
+          margin-bottom: 22px;
+        }
+        .qc-hero-eyebrow::before {
+          content: '';
+          display: block;
+          width: 26px; height: 1px;
+          background: rgba(255,255,255,0.28);
+        }
+        .qc-hero h1 {
+          font-family: 'Syne', sans-serif;
+          font-size: clamp(42px, 7vw, 72px);
+          font-weight: 800;
+          line-height: 1.0;
+          letter-spacing: -0.03em;
+          margin: 0 0 20px;
+          color: #fff;
+        }
+        .qc-hero h1 em {
+          font-style: normal;
+          background: linear-gradient(125deg, #93C5FD, #C4B5FD);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        .qc-hero-sub {
+          font-size: 15.5px;
+          font-weight: 300;
+          color: rgba(255,255,255,0.5);
+          max-width: 420px;
+          line-height: 1.72;
+        }
+        .qc-hero-stats {
+          display: flex;
+          gap: 40px;
+          margin-top: 44px;
+          flex-wrap: wrap;
+        }
+        .qc-stat-n {
+          font-family: 'Lora', Georgia, serif;
+          font-size: 26px;
+          font-weight: 600;
+          color: #FAFAF7;
+          display: block;
+          line-height: 1;
+          margin-bottom: 4px;
+        }
+        .qc-stat-l {
+          font-size: 10.5px;
+          font-weight: 400;
+          letter-spacing: 0.09em;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.35);
+        }
+
+        /* ── GRID SECTION ── */
+        .qc-section {
+          max-width: 1100px;
+          margin: 0 auto;
+          padding: 56px 24px 80px;
+        }
+        .qc-grid {
+          display: grid;
+          gap: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+        }
+
+        /* ── SKELETON ── */
+        .qc-skel {
+          border-radius: 14px;
+          border: 1px solid #E8E4DC;
+          background: #fff;
+          padding: 22px;
+        }
+        .skel-block {
+          border-radius: 5px;
+          background: linear-gradient(90deg, #F0EDE6 25%, #E8E4DB 50%, #F0EDE6 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+          0%   { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+
+        /* ── CARD ── */
+        .qc-card {
+          position: relative;
+          background: #FFFFFF;
+          border: 1px solid #E8E4DC;
+          border-radius: 14px;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          transition:
+            transform 0.24s cubic-bezier(0.34, 1.46, 0.64, 1),
+            box-shadow 0.22s ease,
+            border-color 0.2s ease;
+        }
+        .qc-card:hover {
+          transform: translateY(-5px);
+          border-color: #D6D0C4;
+          box-shadow:
+            0 2px 4px rgba(0,0,0,0.04),
+            0 10px 28px rgba(0,0,0,0.08),
+            0 24px 48px rgba(0,0,0,0.04);
+        }
+
+        /* coloured left accent rule — reveals on hover */
+        .qc-card-rule {
+          position: absolute;
+          left: 0; top: 18px; bottom: 18px;
+          width: 3px;
+          border-radius: 0 3px 3px 0;
+          opacity: 0;
+          transition: opacity 0.22s ease;
+        }
+        .qc-card:hover .qc-card-rule { opacity: 1; }
+
+        .qc-card-body {
+          padding: 20px 20px 20px 24px;
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+
+        /* header row: icon + badge */
+        .qc-card-head {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          margin-bottom: 16px;
+        }
+        .qc-icon {
+          width: 46px; height: 46px;
+          border-radius: 10px;
+          background: #FAFAF7;
+          border: 1px solid #E8E4DC;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          flex-shrink: 0;
+          transition: background 0.18s, border-color 0.18s;
+        }
+        .qc-card:hover .qc-icon {
+          background: #F5F3EE;
+          border-color: #D6D0C4;
+        }
+        .qc-icon img { width: 28px; height: 28px; object-fit: contain; }
+
+        .qc-badge {
+          font-size: 10px;
+          font-weight: 600;
+          letter-spacing: 0.09em;
+          text-transform: uppercase;
+          padding: 3px 9px;
+          border-radius: 99px;
+          border: 1px solid;
+          margin-top: 2px;
+          flex-shrink: 0;
+        }
+
+        /* title — Lora for that educational serif feel */
+        .qc-card h3 {
+        font-family: 'Syne', sans-serif;
+          font-size: 19px;
+          font-weight: 600;
+          color: #1C1917;
+          margin: 0 0 7px;
+          letter-spacing: -0.01em;
+          line-height: 1.25;
+        }
+
+        /* description */
+        .qc-card p {
+          font-size: 13px;
+          font-weight: 300;
+          color: #57534E;
+          line-height: 1.65;
+          margin: 0 0 16px;
+          flex: 1;
+        }
+
+        /* meta strip */
+        .qc-meta {
+          display: flex;
+          border-top: 1px solid #F0EDE6;
+          border-bottom: 1px solid #F0EDE6;
+          padding: 9px 0;
+          margin-bottom: 14px;
+        }
+        .qc-meta-cell {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 1px;
+        }
+        .qc-meta-cell + .qc-meta-cell {
+          border-left: 1px solid #F0EDE6;
+          padding-left: 14px;
+        }
+        .qc-meta-val {
+         font-family: 'Syne', sans-serif;
+          font-size: 14px;
+          font-weight: 600;
+          color: #1C1917;
+          letter-spacing: -0.01em;
+        }
+        .qc-meta-key {
+          font-size: 10px;
+          font-weight: 500;
+          color: #A8A29E;
+          text-transform: uppercase;
+          letter-spacing: 0.09em;
+        }
+
+        /* topic tags */
+        .qc-topics {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+          margin-bottom: 16px;
+        }
+        .qc-topic {
+          font-size: 11px;
+          font-weight: 400;
+          padding: 3px 8px;
+          border-radius: 5px;
+          background: #F5F3EE;
+          color: #78716C;
+          border: 1px solid #EAE6DC;
+        }
+
+        /* CTA button */
+        .qc-btn {
+          width: 100%;
+          padding: 11px 16px;
+          border-radius: 8px;
+          border: none;
+          background: #1C1917;
+          color: #FAFAF7;
+          font-family: 'Inter', sans-serif;
+          font-size: 13px;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          transition: background 0.18s, transform 0.12s;
+        }
+        .qc-btn:hover { background: #2C2A27; }
+        .qc-btn:active { transform: scale(0.98); }
+        .qc-btn svg { transition: transform 0.18s; flex-shrink: 0; }
+        .qc-btn:hover svg { transform: translateX(3px); }
+
+        @media (max-width: 600px) {
+          .qc-hero-inner { padding: 52px 20px 44px; }
+          .qc-hero-stats { gap: 26px; }
+          .qc-section { padding: 40px 20px 60px; }
+          .qc-grid { grid-template-columns: 1fr; }
+        }
+      `}</style>
+
+      <div className="qc-page">
+
+        {/* HERO */}
+        <section className="qc-hero">
+          <div className="qc-hero-glow" />
+          <div className="qc-hero-inner">
+            <div className="qc-hero-eyebrow">Learn &amp; Practice</div>
+            <h1>
+              Master the skills<br />
+              that <em>matter most</em>
             </h1>
-            <p className="text-lg text-blue-100 max-w-2xl">
-              Structured learning paths to help you build real skills step by step
+            <p className="qc-hero-sub">
+              Structured learning paths built for real skill growth — from first tag to full-stack.
             </p>
+            <div className="qc-hero-stats">
+              {[
+                { n: courses.length, l: "Courses" },
+                { n: `${courses.reduce((s, c) => s + c.lessons, 0)}+`, l: "Lessons" },
+                { n: "3", l: "Levels" },
+              ].map(({ n, l }) => (
+                <div key={l}>
+                  <span className="qc-stat-n">{n}</span>
+                  <span className="qc-stat-l">{l}</span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
 
-        {/* Course Grid */}
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 animate-fadeIn">
-            {courses.map((course) => (
-              <div
-                key={course.id}
-                className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-indigo-500 via-blue-500 to-purple-500 opacity-90 hover:opacity-100 transition duration-300"
-              >
-                <div className="bg-white rounded-2xl p-6 h-full shadow-sm group-hover:shadow-xl group-hover:-translate-y-1 transition-all duration-300">
-
-                  {course.popular && (
-                    <span className="absolute top-4 right-4 text-xs font-semibold bg-indigo-600 text-white px-3 py-1 rounded-full shadow">
-                      Popular
-                    </span>
-                  )}
-
-                  <div className="flex items-center gap-4 mb-5">
-                    <div className="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center p-2">
-                      <img src={course.img} alt={course.title} />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
-                        {course.title}
-                      </h3>
-                      <span className={`text-xs px-2 py-1 rounded-full border font-medium ${getLevelColor(course.level)}`}>
-                        {course.level}
-                      </span>
-                    </div>
+        {/* GRID */}
+        <section className="qc-section">
+          {loading ? (
+            <div className="qc-grid">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="qc-skel">
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:16 }}>
+                    <div className="skel-block" style={{ width:46, height:46, borderRadius:10 }} />
+                    <div className="skel-block" style={{ width:76, height:20, borderRadius:99 }} />
                   </div>
-
-                  <p className="text-sm text-gray-600 mb-5 leading-relaxed">
-                    {course.description}
-                  </p>
-
-                  {user && (
-                    <div className="mb-5">
-                      <div className="flex justify-between text-xs text-gray-500 mb-1">
-                        <span>Progress</span>
-                        <span>{course.progress || 0}%</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-2">
-                        <div
-                          className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${course.progress || 0}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="flex justify-between text-xs text-gray-500 border-t border-gray-100 pt-4 mb-5">
-                    <span>{course.duration}</span>
-                    <span>{course.lessons} lessons</span>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {course.topics.map((topic, idx) => (
-                      <span key={idx} className="text-xs bg-slate-100 text-gray-700 px-2 py-1 rounded-md">
-                        {topic}
-                      </span>
+                  <div className="skel-block" style={{ height:18, width:"52%", marginBottom:9 }} />
+                  <div className="skel-block" style={{ height:12, width:"90%", marginBottom:5 }} />
+                  <div className="skel-block" style={{ height:12, width:"75%", marginBottom:18 }} />
+                  <div style={{ display:"flex", gap:5, marginBottom:16 }}>
+                    {[52,64,44].map((w,j) => (
+                      <div key={j} className="skel-block" style={{ height:22, width:w, borderRadius:5 }} />
                     ))}
                   </div>
-
-                  <button
-                    onClick={() => handleStartLearning(course.learnPath)}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition"
-                  >
-                    Start Learning
-                  </button>
+                  <div className="skel-block" style={{ height:40, borderRadius:8 }} />
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          ) : (
+            <div className="qc-grid">
+              {courses.map((course) => {
+                const lvl = LEVEL_META[course.level];
+                return (
+                  <div key={course.id} className="qc-card">
+                    {/* left colour rule */}
+                    <div
+                      className="qc-card-rule"
+                      style={{ background: course.accent }}
+                    />
 
-        {/* Bottom Info */}
-        <div className="max-w-6xl mx-auto px-6 pb-16">
-          <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm">
-            <h3 className="font-semibold text-blue-900 mb-1">
-              Unlock full quiz access
-            </h3>
-            <p className="text-sm text-blue-800">
-              {user
-                ? "You are signed in and can access all quiz levels."
-                : "Sign in to unlock medium and hard quiz challenges and track your progress."}
-            </p>
-          </div>
-        </div>
+                    <div className="qc-card-body">
+                      {/* header */}
+                      <div className="qc-card-head">
+                        <div className="qc-icon">
+                          <img src={course.img} alt={course.title} />
+                        </div>
+                        <span
+                          className="qc-badge"
+                          style={{
+                            color: lvl.color,
+                            background: lvl.bg,
+                            borderColor: lvl.border,
+                          }}
+                        >
+                          {course.level}
+                        </span>
+                      </div>
+
+                      <h3>{course.title}</h3>
+                      <p>{course.description}</p>
+
+                      {/* meta strip */}
+                      <div className="qc-meta">
+                        <div className="qc-meta-cell">
+                          <span className="qc-meta-val">{course.lessons}</span>
+                          <span className="qc-meta-key">Lessons</span>
+                        </div>
+                        <div className="qc-meta-cell">
+                          <span className="qc-meta-val">{course.duration.split("-")[0]}h+</span>
+                          <span className="qc-meta-key">Duration</span>
+                        </div>
+                      </div>
+
+                      {/* topics */}
+                      <div className="qc-topics">
+                        {course.topics.map((t, i) => (
+                          <span key={i} className="qc-topic">{t}</span>
+                        ))}
+                      </div>
+
+                      {/* CTA */}
+                      <button
+                        className="qc-btn"
+                        onClick={() => navigate(course.learnPath)}
+                      >
+                        Start Learning
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
       </div>
-
-      {showLogin && <AuthModal close={() => setShowLogin(false)} />}
     </>
   );
 }
