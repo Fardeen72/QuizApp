@@ -1,1153 +1,1345 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
-/* ── NAV DATA ─────────────────────────────────────────── */
-const NAV_GROUPS = [
-  { section: "Getting Started", items: ["Overview"] },
-  { section: "Layout", items: ["Card", "Divider"] },
-  { section: "Inputs", items: ["Button", "Checkbox", "Input", "Radio", "Select", "Toggle"] },
-  { section: "Display", items: ["Badge", "Breadcrumbs", "Chip", "Skeleton", "Tooltip"] },
-  { section: "Feedback", items: ["Alert", "Modal", "Progress", "Toast"] },
-  { section: "Navigation", items: ["Accordion", "Pagination", "Tabs"] },
-];
-const ALL_ITEMS = NAV_GROUPS.flatMap(g => g.items);
-const FRAMEWORKS = ["React", "Vue", "Angular", "HTML"];
+/* ────────────────────────────────────────────────────────────
+   GLOBAL STYLES
+──────────────────────────────────────────────────────────── */
+const GLOBAL_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Geist+Mono:wght@300;400;500&display=swap');
 
-/* ── META ─────────────────────────────────────────────── */
-const META = {
-  Overview: { desc: "48+ production-ready components for React, Vue, Angular, and HTML. Zero config. Full TypeScript. WCAG 2.1 AA." },
-  Badge: { desc: "Small status indicators for tags, notifications, and labels." },
-  Breadcrumbs: { desc: "Navigation trail showing where a user is within the app." },
-  Card: { desc: "Flexible surface for grouping related content and actions." },
-  Chip: { desc: "Compact tags for categories, filters, and user attributes." },
-  Divider: { desc: "Visual separator between content sections, horizontal or vertical." },
-  Button: { desc: "Triggers actions and navigation. Full variants, sizes, and loading states." },
-  Checkbox: { desc: "Binary selection control with indeterminate state for select-all patterns." },
-  Input: { desc: "Text field with label, validation, icons, and accessible error messaging." },
-  Radio: { desc: "Single-selection control for mutually exclusive options." },
-  Select: { desc: "Dropdown with search, multi-select, and grouped options." },
-  Toggle: { desc: "Binary switch — smoother than a checkbox for boolean preferences." },
-  Alert: { desc: "Contextual feedback for success, errors, warnings, and information." },
-  Modal: { desc: "Accessible overlay dialogs for confirmations, forms, and focused tasks." },
-  Progress: { desc: "Animated progress bars and step indicators with color variants." },
-  Skeleton: { desc: "Loading placeholders that mimic content shape to reduce perceived wait." },
-  Toast: { desc: "Non-blocking notifications that auto-dismiss. Fire-and-forget." },
-  Tooltip: { desc: "Contextual labels on hover. Accessible via keyboard and screen readers." },
-  Accordion: { desc: "Expandable sections for FAQs, settings panels, and navigation groups." },
-  Tabs: { desc: "Organize content into switchable panels with multiple style variants." },
-  Pagination: { desc: "Navigate paginated data with accessible previous/next controls." },
-};
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── PROPS TABLE DATA ─────────────────────────────────── */
-const PROPS = {
-  Button: [
-    { name:"variant", type:"string", def:'"primary"', desc:'"primary" | "secondary" | "outline" | "ghost" | "destructive"' },
-    { name:"size", type:"string", def:'"md"', desc:'"sm" | "md" | "lg" | "icon"' },
-    { name:"loading", type:"boolean", def:"false", desc:"Show spinner and disable interaction" },
-    { name:"disabled", type:"boolean", def:"false", desc:"Disable the button" },
-    { name:"leftIcon", type:"ReactNode", def:"—", desc:"Icon element rendered before the label" },
-  ],
-  Badge: [
-    { name:"variant", type:"string", def:'"default"', desc:'"default" | "success" | "warning" | "error" | "info"' },
-    { name:"size", type:"string", def:'"md"', desc:'"sm" | "md" | "lg"' },
-    { name:"dot", type:"boolean", def:"false", desc:"Show a colored dot indicator before label" },
-    { name:"dismissible", type:"boolean", def:"false", desc:"Render a remove (×) button" },
-  ],
-  Input: [
-    { name:"label", type:"string", def:"—", desc:"Label rendered above the field" },
-    { name:"error", type:"string", def:"—", desc:"Error message — also triggers error styles" },
-    { name:"hint", type:"string", def:"—", desc:"Helper text below the field" },
-    { name:"leftIcon", type:"ReactNode", def:"—", desc:"Icon inside the left edge of input" },
-    { name:"disabled", type:"boolean", def:"false", desc:"Disable the field" },
-  ],
-  Modal: [
-    { name:"open", type:"boolean", def:"false", desc:"Controls modal visibility" },
-    { name:"onClose", type:"() => void", def:"—", desc:"Called when backdrop or × clicked" },
-    { name:"size", type:"string", def:'"md"', desc:'"sm" | "md" | "lg" | "xl" | "full"' },
-    { name:"title", type:"string", def:"—", desc:"Modal header title text" },
-    { name:"closeOnBackdrop", type:"boolean", def:"true", desc:"Clicking backdrop closes the modal" },
-  ],
-  Toggle: [
-    { name:"checked", type:"boolean", def:"false", desc:"Controlled checked state" },
-    { name:"onChange", type:"(v:boolean)=>void", def:"—", desc:"Called with new boolean value" },
-    { name:"size", type:"string", def:'"md"', desc:'"sm" | "md" | "lg"' },
-    { name:"disabled", type:"boolean", def:"false", desc:"Disable the toggle" },
-  ],
-  Progress: [
-    { name:"value", type:"number", def:"0", desc:"Progress 0–100" },
-    { name:"color", type:"string", def:'"blue"', desc:"Color preset or any hex string" },
-    { name:"size", type:"string", def:'"md"', desc:'"sm" | "md" | "lg"' },
-    { name:"striped", type:"boolean", def:"false", desc:"Add animated stripe texture" },
-    { name:"showValue", type:"boolean", def:"false", desc:"Show percentage label" },
-  ],
-  Accordion: [
-    { name:"items", type:"AccordionItem[]", def:"[]", desc:"Array of { title, content }" },
-    { name:"multiple", type:"boolean", def:"false", desc:"Allow multiple panels open at once" },
-    { name:"defaultOpen", type:"number[]", def:"—", desc:"Panel index(es) open by default" },
-  ],
-  Tabs: [
-    { name:"items", type:"TabItem[]", def:"[]", desc:"Array of { label, content }" },
-    { name:"defaultIndex", type:"number", def:"0", desc:"Initially active tab index" },
-    { name:"variant", type:"string", def:'"underline"', desc:'"underline" | "pill" | "card"' },
-    { name:"onChange", type:"(i:number)=>void", def:"—", desc:"Called with new active index" },
-  ],
-  Pagination: [
-    { name:"page", type:"number", def:"1", desc:"Current page (1-indexed)" },
-    { name:"total", type:"number", def:"required", desc:"Total page count" },
-    { name:"onChange", type:"(p:number)=>void", def:"required", desc:"Called with new page number" },
-    { name:"siblingCount", type:"number", def:"1", desc:"Pages shown around current" },
-  ],
-};
-
-/* ── CODE SNIPPETS ────────────────────────────────────── */
-const CODE = {
-  Overview: {
-    React:`// Install
-npm install @uikit/react
-
-// Import
-import { Button, Card, Badge } from "@uikit/react";
-
-// Use in your component
-export default function App() {
-  return (
-    <Card>
-      <Badge variant="success" dot>Active</Badge>
-      <h2>Analytics Dashboard</h2>
-      <p>48,291 total events this month.</p>
-      <Button variant="primary">View Report</Button>
-    </Card>
-  );
-}`,
-    Vue:`// Install
-npm install @uikit/vue
-
-// main.ts
-import { createApp } from "vue";
-import UiKit from "@uikit/vue";
-import "@uikit/vue/dist/style.css";
-
-createApp(App).use(UiKit).mount("#app");
-
-// Component.vue
-<template>
-  <UiCard>
-    <UiBadge variant="success" dot>Active</UiBadge>
-    <h2>Analytics Dashboard</h2>
-    <UiButton variant="primary">View Report</UiButton>
-  </UiCard>
-</template>`,
-    Angular:`// Install
-npm install @uikit/angular
-
-// app.module.ts
-import { UiKitModule } from "@uikit/angular";
-
-@NgModule({ imports: [UiKitModule] })
-export class AppModule {}
-
-// template
-<ui-badge variant="success">Active</ui-badge>
-<ui-button variant="primary">Get started</ui-button>`,
-    HTML:`<link rel="stylesheet" href="https://cdn.uikit.dev/css/uikit.min.css" />
-
-<span class="uk-badge uk-badge-success">Active</span>
-<button class="uk-btn uk-btn-primary">Get Started</button>
-<div class="uk-card uk-card-padded">
-  <h2>Analytics</h2>
-  <p>48,291</p>
-</div>`,
-  },
-  Button: {
-    React:`import { Button } from "@uikit/react";
-import { useState } from "react";
-
-export default function Example() {
-  const [loading, setLoading] = useState(false);
-  return (
-    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-      <Button variant="primary">Primary</Button>
-      <Button variant="secondary">Secondary</Button>
-      <Button variant="outline">Outline</Button>
-      <Button variant="ghost">Ghost</Button>
-      <Button variant="destructive">Delete</Button>
-      <Button
-        loading={loading}
-        onClick={() => {
-          setLoading(true);
-          setTimeout(() => setLoading(false), 2000);
-        }}
-      >
-        Save Changes
-      </Button>
-    </div>
-  );
-}`,
-    Vue:`<template>
-  <div class="flex gap-2 flex-wrap">
-    <UiButton variant="primary">Primary</UiButton>
-    <UiButton variant="secondary">Secondary</UiButton>
-    <UiButton variant="outline">Outline</UiButton>
-    <UiButton variant="ghost">Ghost</UiButton>
-    <UiButton variant="destructive">Delete Account</UiButton>
-    <UiButton :loading="saving" @click="save">Save</UiButton>
-  </div>
-</template>`,
-    Angular:`<ui-button variant="primary">Primary</ui-button>
-<ui-button variant="secondary">Secondary</ui-button>
-<ui-button variant="destructive">Delete Account</ui-button>
-
-export class AppComponent {
-  saving = false;
-  async save() {
-    this.saving = true;
-    await this.service.save();
-    this.saving = false;
-  }
-}`,
-    HTML:`<button class="uk-btn uk-btn-primary">Primary</button>
-<button class="uk-btn uk-btn-secondary">Secondary</button>
-<button class="uk-btn uk-btn-outline">Outline</button>
-<button class="uk-btn uk-btn-ghost">Ghost</button>
-<button class="uk-btn uk-btn-destructive">Delete</button>`,
-  },
-  Badge: {
-    React:`import { Badge } from "@uikit/react";
-
-export default function Example() {
-  return (
-    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-      <Badge variant="default">Default</Badge>
-      <Badge variant="success" dot>Active</Badge>
-      <Badge variant="warning" dot>Pending</Badge>
-      <Badge variant="error" dot>Failed</Badge>
-      <Badge variant="info">New</Badge>
-      {/* Sizes */}
-      <Badge size="sm">Small</Badge>
-      <Badge size="md">Medium</Badge>
-      <Badge size="lg">Large</Badge>
-    </div>
-  );
-}`,
-    Vue:`<template>
-  <div class="flex gap-2 flex-wrap">
-    <UiBadge variant="default">Default</UiBadge>
-    <UiBadge variant="success" dot>Active</UiBadge>
-    <UiBadge variant="warning" dot>Pending</UiBadge>
-    <UiBadge variant="error" dot>Failed</UiBadge>
-  </div>
-</template>`,
-    Angular:`<ui-badge variant="default">Default</ui-badge>
-<ui-badge variant="success" [dot]="true">Active</ui-badge>
-<ui-badge variant="warning" [dot]="true">Pending</ui-badge>
-<ui-badge variant="error" [dot]="true">Failed</ui-badge>`,
-    HTML:`<span class="uk-badge">Default</span>
-<span class="uk-badge uk-badge-success uk-badge-dot">Active</span>
-<span class="uk-badge uk-badge-warning uk-badge-dot">Pending</span>
-<span class="uk-badge uk-badge-error uk-badge-dot">Failed</span>`,
-  },
-  Input: {
-    React:`import { Input } from "@uikit/react";
-import { useState } from "react";
-
-export default function Example() {
-  const [pass, setPass] = useState("");
-  const error = pass.length > 0 && pass.length < 8
-    ? "Must be at least 8 characters."
-    : undefined;
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-      <Input label="Email address" type="email" leftIcon={<MailIcon />} />
-      <Input label="Username" hint="3–20 chars, letters and numbers only." />
-      <Input
-        label="Password"
-        type="password"
-        value={pass}
-        onChange={e => setPass(e.target.value)}
-        error={error}
-      />
-    </div>
-  );
-}`,
-    Vue:`<template>
-  <div class="flex flex-col gap-4">
-    <UiInput label="Email" type="email" :left-icon="MailIcon" />
-    <UiInput label="Username" hint="3–20 chars." />
-    <UiInput
-      label="Password"
-      type="password"
-      v-model="pass"
-      :error="passError"
-    />
-  </div>
-</template>`,
-    Angular:`<ui-input label="Email" type="email"></ui-input>
-<ui-input label="Username" hint="3–20 chars."></ui-input>
-<ui-input
-  label="Password"
-  type="password"
-  [(ngModel)]="pass"
-  [error]="passError">
-</ui-input>`,
-    HTML:`<div class="uk-field">
-  <label class="uk-label">Email address</label>
-  <div class="uk-input-wrap uk-input-icon-left">
-    <span class="uk-icon">✉</span>
-    <input class="uk-input" type="email" placeholder="you@example.com" />
-  </div>
-</div>`,
-  },
-};
-
-ALL_ITEMS.forEach(comp => {
-  if (!CODE[comp]) {
-    CODE[comp] = {};
-    FRAMEWORKS.forEach(fw => {
-      CODE[comp][fw] = `import { ${comp} } from "@uikit/${fw.toLowerCase() === "html" ? "css" : fw.toLowerCase()}";
-
-// Basic usage
-<${comp} />
-
-// With common props
-<${comp} variant="default" size="md" />`;
-    });
-  } else {
-    FRAMEWORKS.forEach(fw => {
-      if (!CODE[comp][fw]) {
-        CODE[comp][fw] = `// ${comp} — ${fw} usage coming soon.
-import { ${comp} } from "@uikit/${fw.toLowerCase()}";
-<${comp} />`;
-      }
-    });
-  }
-});
-
-/* ── LIVE PREVIEWS ────────────────────────────────────── */
-function OverviewPreview() {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-      <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
-        {[
-          { n:"01", icon:"📦", title:"Install", bg:"#eff6ff", dot:"#3b5bdb", desc:"One npm command." },
-          { n:"02", icon:"🎨", title:"Customize", bg:"#ecfdf5", dot:"#10b981", desc:"CSS variables." },
-          { n:"03", icon:"🚀", title:"Ship", bg:"#fffbeb", dot:"#f59e0b", desc:"Production-ready." },
-        ].map(s => (
-          <div key={s.n} style={{ flex:"1 1 140px", background:s.bg, border:"1.5px solid transparent", borderRadius:12, padding:"16px 14px", position:"relative" }}>
-            <div style={{ fontSize:24, marginBottom:8 }}>{s.icon}</div>
-            <div style={{ fontSize:13, fontWeight:600, color:"#111", marginBottom:3 }}>{s.title}</div>
-            <div style={{ fontSize:11.5, color:"#666" }}>{s.desc}</div>
-            <div style={{ position:"absolute", top:12, right:12, fontSize:10, fontWeight:700, color:s.dot, letterSpacing:1 }}>{s.n}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ display:"flex", gap:10 }}>
-        {[{v:"48+",l:"Components"},{v:"4.2kb",l:"Gzipped"},{v:"AA",l:"Accessible"},{v:"4",l:"Frameworks"}].map(s => (
-          <div key={s.l} style={{ flex:1, background:"#F5F4F1", borderRadius:10, padding:"12px 8px", textAlign:"center" }}>
-            <div style={{ fontSize:18, fontWeight:700, color:"#111" }}>{s.v}</div>
-            <div style={{ fontSize:10.5, color:"#888", marginTop:2 }}>{s.l}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+:root {
+  --bg: #0a0a0b;
+  --bg2: #111114;
+  --bg3: #18181c;
+  --border: #27272f;
+  --border2: #323240;
+  --text: #e8e8f0;
+  --text2: #8888a0;
+  --text3: #55556a;
+  --accent: #7c6fff;
+  --accent2: #a78bfa;
+  --green: #22d3a0;
+  --red: #ff6b6b;
+  --yellow: #fbbf24;
+  --blue: #60a5fa;
+  --pink: #f472b6;
 }
 
-function BadgePreview() {
-  const variants = [
-    { label:"Default", bg:"#F5F4F1", color:"#3D3B37", border:"#E9E7E3", dot:"#A09D98" },
-    { label:"Success", bg:"#ecfdf5", color:"#065f46", border:"#a7f3d0", dot:"#10b981" },
-    { label:"Warning", bg:"#fffbeb", color:"#92400e", border:"#fcd34d", dot:"#f59e0b" },
-    { label:"Error", bg:"#fff1f2", color:"#9f1239", border:"#fda4af", dot:"#ef4444" },
-    { label:"Info", bg:"#eff6ff", color:"#1e40af", border:"#bfdbfe", dot:"#3b82f6" },
-  ];
-  return (
-    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
-      {variants.map(v => (
-        <span key={v.label} style={{ display:"inline-flex", alignItems:"center", gap:5, background:v.bg, color:v.color, border:`1.5px solid ${v.border}`, borderRadius:100, padding:"3px 10px 3px 7px", fontSize:12, fontWeight:500 }}>
-          <span style={{ width:6, height:6, borderRadius:"50%", background:v.dot, flexShrink:0 }}/>
-          {v.label}
-        </span>
-      ))}
-    </div>
-  );
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Syne', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
 }
 
-function ButtonPreview() {
-  const [loading, setLoading] = useState(false);
-  const btns = [
-    { label:"Primary", bg:"#111110", color:"#fff", border:"transparent" },
-    { label:"Secondary", bg:"#F5F4F1", color:"#3D3B37", border:"#E9E7E3" },
-    { label:"Outline", bg:"transparent", color:"#111", border:"#D0CECC" },
-    { label:"Ghost", bg:"transparent", color:"#6B6863", border:"transparent" },
-    { label:"Destructive", bg:"#ef4444", color:"#fff", border:"transparent" },
-  ];
-  return (
-    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
-      {btns.map(b => (
-        <button key={b.label} style={{ padding:"7px 15px", borderRadius:8, fontSize:13, fontWeight:500, background:b.bg, color:b.color, border:`1.5px solid ${b.border}`, cursor:"pointer", fontFamily:"inherit", transition:"opacity .15s" }}
-          onMouseOver={e => e.currentTarget.style.opacity="0.8"}
-          onMouseOut={e => e.currentTarget.style.opacity="1"}>
-          {b.label}
-        </button>
-      ))}
-      <button onClick={() => { setLoading(true); setTimeout(() => setLoading(false), 2000); }}
-        disabled={loading}
-        style={{ padding:"7px 15px", borderRadius:8, fontSize:13, fontWeight:500, background:"#111110", color:"#fff", border:"none", cursor:loading?"not-allowed":"pointer", fontFamily:"inherit", display:"flex", alignItems:"center", gap:7, opacity:loading?0.7:1, minWidth:115, justifyContent:"center" }}>
-        {loading ? (<><span style={{ width:12, height:12, border:"2px solid rgba(255,255,255,.3)", borderTop:"2px solid #fff", borderRadius:"50%", animation:"spin 0.7s linear infinite", display:"inline-block" }}/> Saving…</>) : "▶ Try Loading"}
-      </button>
-    </div>
-  );
+#root { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Layout */
+.layout { display: flex; flex: 1; }
+.sidebar {
+  width: 240px; flex-shrink: 0; border-right: 1px solid var(--border);
+  background: var(--bg2); position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.main { flex: 1; overflow: hidden; }
+
+/* Nav */
+.topnav {
+  height: 56px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 16px;
+  background: var(--bg); position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(12px);
+}
+.logo { font-size: 18px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.nav-links { display: flex; gap: 4px; margin-left: auto; }
+.nav-link { padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text2); background: none; border: none; cursor: pointer; font-family: 'Syne', sans-serif; transition: all .15s; }
+.nav-link:hover { color: var(--text); background: var(--bg3); }
+.nav-link.active { color: var(--text); background: var(--bg3); }
+.github-btn {
+  display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+  border-radius: 8px; font-size: 12px; font-weight: 600; color: var(--text);
+  background: var(--bg3); border: 1px solid var(--border2); cursor: pointer;
+  font-family: 'Syne', sans-serif; transition: all .15s; text-decoration: none;
+}
+.github-btn:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* Sidebar */
+.sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-search {
+  display: flex; align-items: center; gap: 8px; background: var(--bg3);
+  border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px;
+  font-size: 12px; color: var(--text2);
+}
+.sidebar-search input { background: none; border: none; outline: none; font-family: 'Syne', sans-serif; font-size: 12.5px; color: var(--text); flex: 1; }
+.sidebar-search input::placeholder { color: var(--text3); }
+.sidebar-nav { padding: 12px 8px; flex: 1; }
+.sidebar-section { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); padding: 8px 8px 4px; }
+.nav-item {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 7px 10px; border-radius: 8px; border: none;
+  background: none; cursor: pointer; font-family: 'Syne', sans-serif;
+  font-size: 13px; font-weight: 500; color: var(--text2); transition: all .13s;
+  text-align: left;
+}
+.nav-item:hover { color: var(--text); background: var(--bg3); }
+.nav-item.active { color: var(--accent2); background: rgba(124,111,255,.1); }
+.nav-badge { font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 100px; background: var(--bg3); color: var(--text3); border: 1px solid var(--border); }
+.nav-item.active .nav-badge { background: rgba(124,111,255,.15); color: var(--accent2); border-color: rgba(124,111,255,.3); }
+
+/* Content */
+.content { padding: 40px 48px 60px; max-width: 1100px; }
+.page-header { margin-bottom: 36px; }
+.page-title { font-size: 32px; font-weight: 800; color: var(--text); letter-spacing: -.5px; margin-bottom: 8px; }
+.page-sub { font-size: 14.5px; color: var(--text2); line-height: 1.6; }
+
+/* Component Grid */
+.comp-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 48px; }
+@media (max-width: 900px) { .comp-grid { grid-template-columns: 1fr; } .content { padding: 24px 20px 40px; } .sidebar { display: none; } }
+
+.comp-card {
+  border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+  background: var(--bg2); cursor: pointer; transition: all .2s;
+  display: flex; flex-direction: column;
+}
+.comp-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: 0 12px 40px rgba(0,0,0,.4); }
+.comp-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(124,111,255,.3); }
+
+.comp-preview {
+  background: var(--bg3); border-bottom: 1px solid var(--border);
+  padding: 28px 24px; min-height: 160px; display: flex; align-items: center;
+  justify-content: center; position: relative; overflow: hidden;
+}
+.comp-preview::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(124,111,255,.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.comp-footer { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; }
+.comp-name { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.comp-count { font-size: 11px; color: var(--text3); font-weight: 500; }
+
+/* Demo section */
+.demo-header { margin-bottom: 24px; }
+.demo-title { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom:6px; }
+.demo-desc { font-size: 13.5px; color: var(--text2); }
+
+.demo-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.demo-tab { padding: 9px 18px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; color: var(--text3); cursor: pointer; transition: all .13s; }
+.demo-tab:hover { color: var(--text2); }
+.demo-tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+
+.demo-preview {
+  border: 1px solid var(--border); border-radius: 12px; background: var(--bg3);
+  padding: 32px 28px; margin-bottom: 16px; min-height: 120px;
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px;
+  position: relative; overflow: hidden;
+}
+.demo-preview::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(124,111,255,.05) 0%, transparent 100%);
 }
 
-function InputPreview() {
-  const [focused, setFocused] = useState(null);
-  const [pass, setPass] = useState("");
-  const err = pass.length > 0 && pass.length < 8;
-  const borderColor = (name, isErr) => isErr ? "#ef4444" : focused === name ? "#111110" : "#E9E7E3";
-  const shadow = (name, isErr) => isErr ? "0 0 0 3px rgba(239,68,68,.1)" : focused === name ? "0 0 0 3px rgba(17,17,16,.07)" : "none";
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <div>
-        <div style={{ fontSize:12, fontWeight:500, color:"#3D3B37", marginBottom:5 }}>Email address</div>
-        <div style={{ display:"flex", alignItems:"center", border:`1.5px solid ${borderColor("em",false)}`, borderRadius:8, background:"#fff", boxShadow:shadow("em",false), transition:"all .15s", overflow:"hidden" }}>
-          <span style={{ padding:"0 10px", color:"#B0ACA6", fontSize:14, flexShrink:0 }}>✉</span>
-          <input type="email" placeholder="you@example.com" onFocus={()=>setFocused("em")} onBlur={()=>setFocused(null)} style={{ border:"none", outline:"none", fontSize:13, flex:1, fontFamily:"inherit", background:"transparent", color:"#111", padding:"7px 10px 7px 0" }}/>
-        </div>
-      </div>
-      <div>
-        <div style={{ fontSize:12, fontWeight:500, color:"#3D3B37", marginBottom:5 }}>Username</div>
-        <input onFocus={()=>setFocused("us")} onBlur={()=>setFocused(null)} style={{ border:`1.5px solid ${borderColor("us",false)}`, borderRadius:8, padding:"7px 11px", fontSize:13, outline:"none", background:"#fff", boxShadow:shadow("us",false), transition:"all .15s", fontFamily:"inherit", color:"#111", width:"100%", boxSizing:"border-box" }}/>
-        <div style={{ fontSize:11.5, color:"#888", marginTop:5 }}>3–20 chars, letters and numbers only.</div>
-      </div>
-      <div>
-        <div style={{ fontSize:12, fontWeight:500, color:"#3D3B37", marginBottom:5 }}>Password</div>
-        <input type="password" value={pass} onChange={e=>setPass(e.target.value)} onFocus={()=>setFocused("pw")} onBlur={()=>setFocused(null)} placeholder="••••••••" style={{ border:`1.5px solid ${borderColor("pw",err)}`, borderRadius:8, padding:"7px 11px", fontSize:13, outline:"none", background:"#fff", boxShadow:shadow("pw",err), transition:"all .15s", fontFamily:"inherit", color:"#111", width:"100%", boxSizing:"border-box" }}/>
-        {err && <div style={{ fontSize:11.5, color:"#ef4444", marginTop:5 }}>Must be at least 8 characters.</div>}
-      </div>
-    </div>
-  );
+.demo-code-box {
+  border: 1px solid var(--border); border-radius: 12px; background: #0d0d10;
+  overflow: hidden; font-family: 'Geist Mono', monospace; font-size: 12.5px;
 }
+.code-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+.code-lang { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; }
+.copy-btn { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; color: var(--text2); cursor: pointer; transition: all .13s; }
+.copy-btn:hover { color: var(--text); border-color: var(--accent); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); }
+.code-body { padding: 18px 20px; overflow-x: auto; line-height: 1.7; color: #abb2bf; }
+pre { margin: 0; white-space: pre; }
 
-function ModalPreview() {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ display:"flex", justifyContent:"center" }}>
-      <button onClick={()=>setOpen(true)} style={{ padding:"8px 18px", borderRadius:8, background:"#111110", color:"#fff", border:"none", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>Open Modal</button>
-      {open && (
-        <div style={{ position:"fixed", inset:0, zIndex:9999, display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <div onClick={()=>setOpen(false)} style={{ position:"absolute", inset:0, background:"rgba(0,0,0,.5)", backdropFilter:"blur(4px)" }}/>
-          <div style={{ position:"relative", background:"#fff", borderRadius:14, padding:"24px", width:380, maxWidth:"90vw", boxShadow:"0 32px 64px rgba(0,0,0,.2)" }}>
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12 }}>
-              <div>
-                <div style={{ fontSize:16, fontWeight:600, color:"#111" }}>Delete Project</div>
-                <div style={{ fontSize:12, color:"#888", marginTop:2 }}>This action cannot be undone.</div>
-              </div>
-              <button onClick={()=>setOpen(false)} style={{ background:"none", border:"none", cursor:"pointer", fontSize:19, color:"#A09D98", lineHeight:1 }}>×</button>
-            </div>
-            <p style={{ fontSize:13, color:"#555", lineHeight:1.6, marginBottom:20 }}>Deleting <strong>my-awesome-project</strong> will permanently remove all 48 files and associated data.</p>
-            <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
-              <button onClick={()=>setOpen(false)} style={{ padding:"7px 14px", borderRadius:8, background:"#F5F4F1", border:"1.5px solid #E9E7E3", fontSize:13, cursor:"pointer", fontFamily:"inherit", color:"#555" }}>Cancel</button>
-              <button onClick={()=>setOpen(false)} style={{ padding:"7px 14px", borderRadius:8, background:"#ef4444", border:"none", color:"#fff", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"inherit" }}>Yes, delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+/* Variants strip */
+.variants { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.variant-btn { padding: 5px 14px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg3); font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all .13s; }
+.variant-btn:hover { color: var(--text); border-color: var(--border2); }
+.variant-btn.active { background: rgba(124,111,255,.12); color: var(--accent2); border-color: rgba(124,111,255,.4); }
+
+/* Footer */
+.site-footer {
+  border-top: 1px solid var(--border); background: var(--bg2);
+  padding: 40px 48px 28px; margin-top: auto;
 }
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-top { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 36px; }
+@media (max-width: 768px) { .footer-top { grid-template-columns: 1fr 1fr; gap: 24px; } .site-footer { padding: 28px 20px; } }
+.footer-brand { }
+.footer-brand .logo { margin-bottom: 10px; display: inline-flex; }
+.footer-tagline { font-size: 13px; color: var(--text2); line-height: 1.6; max-width: 220px; }
+.footer-col-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text3); margin-bottom: 14px; }
+.footer-links { display: flex; flex-direction: column; gap: 8px; }
+.footer-link { font-size: 13px; color: var(--text2); text-decoration: none; transition: color .13s; cursor: pointer; background: none; border: none; font-family: 'Syne', sans-serif; text-align: left; }
+.footer-link:hover { color: var(--accent2); }
+.footer-bottom { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); padding-top: 20px; flex-wrap: wrap; gap: 12px; }
+.footer-copy { font-size: 12px; color: var(--text3); }
+.footer-socials { display: flex; gap: 8px; }
+.social-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; transition: all .13s; color: var(--text2); }
+.social-btn:hover { border-color: var(--accent); color: var(--accent2); }
 
-function AlertPreview() {
-  const [shown, setShown] = useState([0,1,2,3]);
-  const alerts = [
-    { title:"Deployed successfully", msg:"v2.4.1 is live.", icon:"✓", bg:"#ecfdf5", border:"#a7f3d0", color:"#065f46" },
-    { title:"Storage at 85%", msg:"Consider upgrading.", icon:"⚠", bg:"#fffbeb", border:"#fcd34d", color:"#92400e" },
-    { title:"Build failed", msg:"TypeScript error in /src/api.ts.", icon:"✕", bg:"#fff1f2", border:"#fda4af", color:"#9f1239" },
-    { title:"Update available", msg:"v3.2.0 is ready.", icon:"i", bg:"#eff6ff", border:"#bfdbfe", color:"#1e40af" },
-  ];
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-      {alerts.filter((_,i)=>shown.includes(i)).map((a,i) => (
-        <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:10, background:a.bg, border:`1.5px solid ${a.border}`, borderRadius:9, padding:"10px 12px" }}>
-          <span style={{ fontSize:11, fontWeight:700, color:a.color, border:`1.5px solid ${a.color}`, borderRadius:"50%", width:18, height:18, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:1 }}>{a.icon}</span>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:12.5, fontWeight:600, color:a.color }}>{a.title}</div>
-            <div style={{ fontSize:11.5, color:a.color, opacity:.75, marginTop:1 }}>{a.msg}</div>
-          </div>
-          <button onClick={()=>setShown(shown.filter(x=>x!==i))} style={{ background:"none", border:"none", cursor:"pointer", fontSize:15, color:a.color, opacity:.45, lineHeight:1, padding:0, flexShrink:0 }}>×</button>
-        </div>
-      ))}
-      {shown.length===0 && (
-        <div style={{ textAlign:"center", padding:"8px 0" }}>
-          <button onClick={()=>setShown([0,1,2,3])} style={{ fontSize:12, color:"#3D3B37", background:"none", border:"1.5px solid #E9E7E3", borderRadius:7, padding:"4px 12px", cursor:"pointer", fontFamily:"inherit" }}>Reset</button>
-        </div>
-      )}
-    </div>
-  );
+/* ── COMPONENT PREVIEWS ── */
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; font-family: 'Syne', sans-serif; font-weight: 600; cursor: pointer; border-radius: 10px; transition: all .18s; border: none; font-size: 13.5px; }
+.btn-primary { background: var(--accent); color: #fff; padding: 9px 20px; }
+.btn-primary:hover { background: #6b5ef7; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(124,111,255,.35); }
+.btn-secondary { background: var(--bg3); color: var(--text); padding: 9px 20px; border: 1px solid var(--border2); }
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent2); }
+.btn-outline { background: transparent; color: var(--accent2); padding: 9px 20px; border: 1.5px solid var(--accent); }
+.btn-outline:hover { background: rgba(124,111,255,.1); }
+.btn-ghost { background: transparent; color: var(--text2); padding: 9px 20px; }
+.btn-ghost:hover { background: var(--bg3); color: var(--text); }
+.btn-danger { background: var(--red); color: #fff; padding: 9px 20px; }
+.btn-danger:hover { background: #e85555; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(255,107,107,.3); }
+.btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 7px; }
+.btn-lg { padding: 12px 28px; font-size: 15px; border-radius: 12px; }
+.btn-icon { padding: 9px; border-radius: 10px; }
+.btn-loading { opacity: .7; cursor: not-allowed; pointer-events: none; }
+.spinner { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.25); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; flex-shrink: 0; }
+.btn-success { background: var(--green); color: #0a2e24; padding: 9px 20px; }
+.btn-success:hover { background: #1fc090; }
+
+/* Avatar */
+.avatar { border-radius: 50%; background: var(--bg3); border: 2px solid var(--border2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: 'Syne', sans-serif; color: var(--text); overflow: hidden; flex-shrink: 0; position: relative; }
+.avatar-xs { width: 24px; height: 24px; font-size: 9px; }
+.avatar-sm { width: 32px; height: 32px; font-size: 11px; }
+.avatar-md { width: 40px; height: 40px; font-size: 14px; }
+.avatar-lg { width: 52px; height: 52px; font-size: 18px; }
+.avatar-xl { width: 68px; height: 68px; font-size: 24px; }
+.avatar-group { display: flex; }
+.avatar-group .avatar { margin-left: -10px; border: 2px solid var(--bg3); }
+.avatar-group .avatar:first-child { margin-left: 0; }
+.status-dot { position: absolute; bottom: 1px; right: 1px; width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--bg3); }
+.status-online { background: var(--green); }
+.status-away { background: var(--yellow); }
+.status-offline { background: var(--text3); }
+
+/* Cards */
+.card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; transition: all .2s; }
+.card:hover { border-color: var(--border2); box-shadow: 0 12px 40px rgba(0,0,0,.3); transform: translateY(-2px); }
+.card-img { width: 100%; height: 120px; background: linear-gradient(135deg, var(--accent) 0%, #1a1a3e 100%); display: flex; align-items: center; justify-content: center; font-size: 32px; }
+.card-body { padding: 16px; }
+.card-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+.card-text { font-size: 12.5px; color: var(--text2); line-height: 1.6; }
+.card-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.card-stat { font-size: 11.5px; color: var(--text3); }
+.card-stat span { color: var(--accent2); font-weight: 600; }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 100px; font-family: 'Syne', sans-serif; }
+.badge-default { background: var(--bg3); color: var(--text2); border: 1px solid var(--border2); }
+.badge-success { background: rgba(34,211,160,.12); color: var(--green); border: 1px solid rgba(34,211,160,.25); }
+.badge-warning { background: rgba(251,191,36,.1); color: var(--yellow); border: 1px solid rgba(251,191,36,.25); }
+.badge-error { background: rgba(255,107,107,.1); color: var(--red); border: 1px solid rgba(255,107,107,.25); }
+.badge-info { background: rgba(96,165,250,.1); color: var(--blue); border: 1px solid rgba(96,165,250,.25); }
+.badge-purple { background: rgba(124,111,255,.12); color: var(--accent2); border: 1px solid rgba(124,111,255,.3); }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+/* Modal */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(6px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; animation: fadeIn .15s ease; }
+.modal-box { background: var(--bg2); border: 1px solid var(--border2); border-radius: 16px; width: 420px; max-width: 100%; box-shadow: 0 32px 80px rgba(0,0,0,.6); animation: slideUp .2s ease; overflow: hidden; }
+.modal-header { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 22px 16px; }
+.modal-title { font-size: 16px; font-weight: 800; color: var(--text); }
+.modal-sub { font-size: 12.5px; color: var(--text2); margin-top: 3px; }
+.modal-close { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg3); color: var(--text2); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .13s; line-height: 1; font-family: 'Syne', sans-serif; }
+.modal-close:hover { color: var(--text); border-color: var(--border2); }
+.modal-body { padding: 0 22px 18px; font-size: 13.5px; color: var(--text2); line-height: 1.6; }
+.modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Tabs */
+.tabs-box { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; width: 100%; }
+.tabs-list { display: flex; border-bottom: 1px solid var(--border); background: var(--bg2); padding: 0 4px; }
+.tab-btn { flex: 1; padding: 10px 14px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px; font-family: 'Syne', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--text3); cursor: pointer; transition: all .13s; }
+.tab-btn:hover { color: var(--text2); }
+.tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
+.tab-content { padding: 18px 16px; font-size: 13px; color: var(--text2); line-height: 1.6; }
+.tabs-pill { display: flex; gap: 4px; background: var(--bg2); padding: 4px; border-radius: 12px; border: 1px solid var(--border); display: inline-flex; }
+.tab-pill-btn { padding: 6px 16px; border-radius: 8px; border: none; font-family: 'Syne', sans-serif; font-size: 12.5px; font-weight: 600; color: var(--text3); cursor: pointer; transition: all .15s; background: none; }
+.tab-pill-btn:hover { color: var(--text2); background: var(--bg3); }
+.tab-pill-btn.active { background: var(--accent); color: #fff; }
+
+/* Nav variants */
+.nav-demo { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; display: flex; align-items: center; padding: 0 16px; height: 52px; gap: 4px; width: 100%; }
+.nav-logo { font-size: 15px; font-weight: 800; color: var(--text); margin-right: 16px; }
+.nav-demo-link { padding: 6px 12px; border-radius: 7px; font-size: 12.5px; font-weight: 500; color: var(--text2); background: none; border: none; cursor: pointer; font-family: 'Syne', sans-serif; transition: all .13s; }
+.nav-demo-link:hover { color: var(--text); background: var(--bg3); }
+.nav-demo-link.active { color: var(--text); background: var(--bg3); }
+.nav-spacer { flex: 1; }
+
+/* Loading */
+.spinner-lg { width: 36px; height: 36px; border: 3px solid rgba(124,111,255,.2); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+.spinner-dots { display: flex; gap: 5px; }
+.spinner-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: bounce .7s ease-in-out infinite; }
+.spinner-dot:nth-child(2) { animation-delay: .15s; }
+.spinner-dot:nth-child(3) { animation-delay: .3s; }
+.progress-bar { height: 5px; background: var(--bg3); border-radius: 100px; overflow: hidden; width: 160px; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 100px; animation: progress 2s ease-in-out infinite; }
+.skeleton-line { height: 12px; background: linear-gradient(90deg, var(--bg3) 25%, var(--border2) 50%, var(--bg3) 75%); background-size: 200% 100%; border-radius: 6px; animation: shimmer 1.5s infinite; }
+.skeleton-circle { border-radius: 50%; background: linear-gradient(90deg, var(--bg3) 25%, var(--border2) 50%, var(--bg3) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+
+/* Hero */
+.hero-demo { text-align: center; width: 100%; padding: 16px 0; }
+.hero-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent2); background: rgba(124,111,255,.1); border: 1px solid rgba(124,111,255,.25); padding: 4px 12px; border-radius: 100px; margin-bottom: 14px; }
+.hero-h { font-size: 28px; font-weight: 800; color: var(--text); letter-spacing: -.5px; line-height: 1.2; margin-bottom: 10px; }
+.hero-p { font-size: 13.5px; color: var(--text2); max-width: 380px; margin: 0 auto 18px; line-height: 1.6; }
+.hero-btns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* Features */
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; width: 100%; }
+@media (max-width: 700px) { .features-grid { grid-template-columns: 1fr; } }
+.feature-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; transition: all .2s; }
+.feature-item:hover { border-color: var(--border2); transform: translateY(-2px); }
+.feature-icon { width: 36px; height: 36px; border-radius: 9px; background: rgba(124,111,255,.12); border: 1px solid rgba(124,111,255,.2); display: flex; align-items: center; justify-content: center; font-size: 17px; margin-bottom: 10px; }
+.feature-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+.feature-desc { font-size: 11.5px; color: var(--text3); line-height: 1.5; }
+
+/* Input */
+.input-group { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.input-label { font-size: 12px; font-weight: 600; color: var(--text2); }
+.input-field {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 9px;
+  padding: 9px 13px; font-family: 'Syne', sans-serif; font-size: 13px;
+  color: var(--text); outline: none; transition: all .15s; width: 100%;
 }
+.input-field::placeholder { color: var(--text3); }
+.input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,111,255,.12); }
+.input-field.error { border-color: var(--red); }
+.input-error { font-size: 11.5px; color: var(--red); }
+.input-hint { font-size: 11.5px; color: var(--text3); }
+.input-wrap { position: relative; }
+.input-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; pointer-events: none; }
+.input-with-icon { padding-left: 34px; }
 
-function ProgressPreview() {
-  const [vals, setVals] = useState([68,42,91,27]);
-  const colors = ["#111110","#10b981","#f59e0b","#ef4444"];
-  const labels = ["Storage","Bandwidth","CPU","Memory"];
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      {labels.map((l,i) => (
-        <div key={l}>
-          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-            <span style={{ fontSize:12, color:"#555" }}>{l}</span>
-            <span style={{ fontSize:12, fontWeight:600, color:colors[i] }}>{vals[i]}%</span>
-          </div>
-          <div style={{ height:8, background:"#F0EEE9", borderRadius:100, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:`${vals[i]}%`, background:colors[i], borderRadius:100, transition:"width 0.6s cubic-bezier(.4,0,.2,1)" }}/>
-          </div>
-        </div>
-      ))}
-      <button onClick={()=>setVals(vals.map(()=>Math.floor(Math.random()*88)+5))} style={{ alignSelf:"flex-start", marginTop:2, padding:"5px 13px", borderRadius:7, background:"#F5F4F1", border:"1.5px solid #E9E7E3", fontSize:11, cursor:"pointer", fontFamily:"inherit", color:"#3D3B37" }}>Animate</button>
-    </div>
-  );
-}
-
-function ToastPreview() {
-  const [toasts, setToasts] = useState([]);
-  const id = useRef(0);
-  const TYPES = [
-    { label:"Success", icon:"✓", color:"#10b981", bg:"#ecfdf5", border:"#a7f3d0" },
-    { label:"Error", icon:"✕", color:"#ef4444", bg:"#fff1f2", border:"#fda4af" },
-    { label:"Info", icon:"i", color:"#3b82f6", bg:"#eff6ff", border:"#bfdbfe" },
-    { label:"Warning", icon:"⚠", color:"#f59e0b", bg:"#fffbeb", border:"#fcd34d" },
-  ];
-  const fire = t => {
-    const tid = ++id.current;
-    setToasts(p => [...p, { id:tid,...t }]);
-    setTimeout(() => setToasts(p => p.filter(x=>x.id!==tid)), 3200);
-  };
-  return (
-    <div style={{ position:"relative", minHeight:100 }}>
-      <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
-        {TYPES.map(t => (
-          <button key={t.label} onClick={()=>fire(t)} style={{ padding:"6px 14px", borderRadius:8, fontSize:12.5, fontWeight:500, border:"1.5px solid #E9E7E3", background:"#fff", cursor:"pointer", fontFamily:"inherit", color:"#3D3B37" }}>{t.label}</button>
-        ))}
-      </div>
-      <div style={{ position:"absolute", bottom:0, right:0, display:"flex", flexDirection:"column", gap:6, alignItems:"flex-end" }}>
-        {toasts.map(t => (
-          <div key={t.id} style={{ display:"flex", alignItems:"center", gap:10, background:t.bg||"#fff", border:`1.5px solid ${t.border||"#eee"}`, borderRadius:10, padding:"9px 14px", boxShadow:"0 4px 16px rgba(0,0,0,.08)", animation:"fadeIn .2s ease", minWidth:180 }}>
-            <span style={{ width:18, height:18, borderRadius:"50%", background:t.color, color:"#fff", fontSize:10, fontWeight:700, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>{t.icon}</span>
-            <div>
-              <div style={{ fontSize:12.5, fontWeight:600, color:"#111" }}>{t.label}</div>
-              <div style={{ fontSize:11, color:"#888" }}>Action completed.</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function AccordionPreview() {
-  const [open, setOpen] = useState(0);
-  const items = [
-    { q:"What frameworks are supported?", a:"React, Vue, Angular, and Svelte — all first-class with TypeScript." },
-    { q:"Is it accessible?", a:"Yes — WCAG 2.1 AA with full keyboard navigation and ARIA." },
-    { q:"Can I use Tailwind CSS?", a:"Yes. Zero default styles. Works with any CSS approach." },
-    { q:"Is there a Figma kit?", a:"A community Figma library with all tokens is available free." },
-  ];
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:0, border:"1.5px solid #E9E7E3", borderRadius:10, overflow:"hidden" }}>
-      {items.map((item,i) => (
-        <div key={i} style={{ borderBottom:i<items.length-1?"1.5px solid #E9E7E3":"none" }}>
-          <button onClick={()=>setOpen(open===i?-1:i)} style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 14px", background:"none", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:500, color:"#111", textAlign:"left", gap:12 }}>
-            {item.q}
-            <span style={{ transform:open===i?"rotate(180deg)":"rotate(0)", transition:"transform .2s", color:"#888", fontSize:12, flexShrink:0 }}>↓</span>
-          </button>
-          {open===i && (
-            <div style={{ padding:"0 14px 12px", fontSize:13, color:"#555", lineHeight:1.6 }}>{item.a}</div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function TabsPreview() {
-  const [active, setActive] = useState(0);
-  const tabs = [
-    { label:"Overview", c:"Get started quickly with comprehensive docs. No config needed." },
-    { label:"Props", c:"Every component exposes a well-typed API with sensible defaults." },
-    { label:"Examples", c:"Interactive examples covering forms, dashboards, tables and more." },
-    { label:"Changelog", c:"v3.1.0 — Tooltip added, Modal a11y improved, Dropdown z-index fixed." },
-  ];
-  return (
-    <div>
-      <div style={{ display:"flex", borderBottom:"1.5px solid #E9E7E3", marginBottom:16 }}>
-        {tabs.map((t,i) => (
-          <button key={i} onClick={()=>setActive(i)} style={{ padding:"8px 12px", background:"none", border:"none", borderBottom:`2px solid ${active===i?"#111110":"transparent"}`, marginBottom:-1.5, cursor:"pointer", fontFamily:"inherit", fontSize:13, fontWeight:500, color:active===i?"#111110":"#888", transition:"all .13s" }}>{t.label}</button>
-        ))}
-      </div>
-      <div style={{ fontSize:13, color:"#555", lineHeight:1.6, background:"#F9F8F6", borderRadius:8, padding:"12px 14px" }}>{tabs[active].c}</div>
-    </div>
-  );
-}
-
-function PaginationPreview() {
-  const [page, setPage] = useState(3);
-  const total = 8;
-  const btn = (active, disabled) => ({
-    minWidth:32, height:32, borderRadius:7, border:"1.5px solid", fontSize:13, fontWeight:500,
-    cursor:disabled?"not-allowed":"pointer", fontFamily:"inherit", transition:"all .13s",
-    background:active?"#111110":"#fff", color:active?"#fff":"#6B6863",
-    borderColor:active?"#111110":"#E9E7E3", opacity:disabled?.4:1, padding:"0 8px",
-  });
-  return (
-    <div style={{ display:"flex", gap:6, alignItems:"center", flexWrap:"wrap" }}>
-      <button onClick={()=>setPage(Math.max(1,page-1))} disabled={page===1} style={btn(false,page===1)}>‹</button>
-      {Array.from({length:total},(_,i)=>i+1).map(n=>(
-        <button key={n} onClick={()=>setPage(n)} style={btn(page===n,false)}>{n}</button>
-      ))}
-      <button onClick={()=>setPage(Math.min(total,page+1))} disabled={page===total} style={btn(false,page===total)}>›</button>
-    </div>
-  );
-}
-
-function TogglePreview() {
-  const items = [
-    { l:"Email notifications", d:"Receive updates via email" },
-    { l:"Dark mode", d:"Use dark theme across the app" },
-    { l:"Auto-save", d:"Save changes every 30 seconds" },
-    { l:"Analytics tracking", d:"Help us improve with usage data" },
-  ];
-  const [st, setSt] = useState([true,false,true,false]);
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-      {items.map(({l,d},i) => (
-        <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"10px 2px", borderBottom:i<items.length-1?"1.5px solid #F0EEE9":"none" }}>
-          <div>
-            <div style={{ fontSize:13, fontWeight:500, color:"#111" }}>{l}</div>
-            <div style={{ fontSize:11.5, color:"#999" }}>{d}</div>
-          </div>
-          <button onClick={()=>setSt(st.map((s,j)=>j===i?!s:s))} style={{ width:34, height:19, borderRadius:100, border:"none", cursor:"pointer", transition:"background .18s", background:st[i]?"#111110":"#E9E7E3", position:"relative", flexShrink:0, padding:0 }}>
-            <div style={{ position:"absolute", top:2, left:st[i]?15:2, width:15, height:15, borderRadius:"50%", background:"#fff", boxShadow:"0 1px 3px rgba(0,0,0,.2)", transition:"left .18s" }}/>
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CheckboxPreview() {
-  const tasks = ["Design system","Write unit tests","Deploy to staging","Code review","Update docs"];
-  const [checked, setChecked] = useState([true,false,true,false,false]);
-  const all = checked.every(Boolean), some = checked.some(Boolean) && !all;
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-      <div style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 2px", borderBottom:"1.5px solid #E9E7E3", marginBottom:4 }}
-        onClick={()=>setChecked(checked.map(()=>!all))}>
-        <div style={{ width:15, height:15, borderRadius:4, border:`2px solid ${all||some?"#111110":"#D9D6D0"}`, background:all?"#111110":some?"#F5F4F1":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, cursor:"pointer" }}>
-          {all&&<span style={{ color:"#fff", fontSize:9, lineHeight:1 }}>✓</span>}
-          {some&&!all&&<div style={{ width:7, height:2, background:"#111", borderRadius:1 }}/>}
-        </div>
-        <span style={{ fontSize:13, fontWeight:600, color:"#111", cursor:"pointer" }}>Select all tasks</span>
-      </div>
-      {tasks.map((t,i) => (
-        <div key={i} style={{ display:"flex", alignItems:"center", gap:9, padding:"7px 2px", cursor:"pointer" }}
-          onClick={()=>setChecked(checked.map((c,j)=>j===i?!c:c))}>
-          <div style={{ width:15, height:15, borderRadius:4, border:`2px solid ${checked[i]?"#111110":"#D9D6D0"}`, background:checked[i]?"#111110":"#fff", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            {checked[i]&&<span style={{ color:"#fff", fontSize:9, lineHeight:1 }}>✓</span>}
-          </div>
-          <span style={{ fontSize:13, color:checked[i]?"#111":"#777", textDecoration:checked[i]?"none":"line-through" }}>{t}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SelectPreview() {
-  const [val, setVal] = useState("");
-  const [open, setOpen] = useState(false);
-  const opts = ["Design System","Component Library","UI Kit","Pattern Library","Style Guide"];
-  return (
-    <div style={{ position:"relative" }}>
-      <div style={{ fontSize:12, fontWeight:500, color:"#3D3B37", marginBottom:5 }}>Project type</div>
-      <button onClick={()=>setOpen(!open)} style={{ width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between", padding:"7px 11px", border:"1.5px solid #E9E7E3", borderRadius:8, background:"#fff", cursor:"pointer", fontFamily:"inherit", fontSize:13, color:val?"#111":"#B0ACA6", textAlign:"left" }}>
-        {val||"Select an option…"}
-        <span style={{ transform:open?"rotate(180deg)":"none", transition:"transform .2s", color:"#888", fontSize:10 }}>▼</span>
-      </button>
-      {open && (
-        <div style={{ position:"absolute", top:"100%", left:0, right:0, background:"#fff", border:"1.5px solid #E9E7E3", borderRadius:9, marginTop:4, zIndex:10, boxShadow:"0 8px 24px rgba(0,0,0,.1)", overflow:"hidden" }}>
-          {opts.map(op => (
-            <button key={op} onClick={()=>{setVal(op);setOpen(false);}} style={{ display:"block", width:"100%", textAlign:"left", padding:"8px 12px", background:val===op?"#F5F4F1":"none", border:"none", cursor:"pointer", fontFamily:"inherit", fontSize:13, color:val===op?"#111":"#3D3B37", transition:"background .1s" }}>{op}</button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function RadioPreview() {
-  const [plan, setPlan] = useState("pro");
-  const plans = [
-    { id:"free", l:"Free", d:"Up to 3 projects, community support" },
-    { id:"pro", l:"Pro", d:"Unlimited projects, priority support" },
-    { id:"team", l:"Team", d:"SSO, audit logs, custom roles" },
-  ];
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-      {plans.map(p => (
-        <div key={p.id} onClick={()=>setPlan(p.id)} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 12px", border:`1.5px solid ${plan===p.id?"#111110":"#E9E7E3"}`, borderRadius:9, cursor:"pointer", background:plan===p.id?"#F5F4F1":"#fff", transition:"all .13s" }}>
-          <div style={{ width:16, height:16, borderRadius:"50%", border:`2px solid ${plan===p.id?"#111110":"#D9D6D0"}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-            {plan===p.id&&<div style={{ width:7, height:7, borderRadius:"50%", background:"#111110" }}/>}
-          </div>
-          <div>
-            <div style={{ fontSize:13, fontWeight:500, color:"#111" }}>{p.l}</div>
-            <div style={{ fontSize:11.5, color:"#888" }}>{p.d}</div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SkeletonPreview() {
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    if (loading) { const t = setTimeout(() => setLoading(false), 2800); return () => clearTimeout(t); }
-  }, [loading]);
-  const sk = (w,h,r=5) => (
-    <div style={{ width:w, height:h, borderRadius:r, background:"linear-gradient(90deg,#F0EEE9 25%,#E6E3DD 50%,#F0EEE9 75%)", backgroundSize:"200% 100%", animation:"shimmer 1.5s infinite" }}/>
-  );
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
-      {loading ? (
-        <div style={{ border:"1.5px solid #E9E7E3", borderRadius:12, padding:16, display:"flex", flexDirection:"column", gap:12 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            {sk(36,36,100)}
-            <div style={{ flex:1, display:"flex", flexDirection:"column", gap:6 }}>
-              {sk("52%",10)}{sk("36%",9)}
-            </div>
-          </div>
-          <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
-            {sk("100%",10)}{sk("86%",10)}{sk("68%",10)}
-          </div>
-          <div style={{ display:"flex", gap:8 }}>{sk(56,26,7)}{sk(48,26,7)}</div>
-        </div>
-      ) : (
-        <div style={{ border:"1.5px solid #E9E7E3", borderRadius:12, padding:16 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-            <div style={{ width:36, height:36, borderRadius:"50%", background:"#F0EEE9", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16 }}>🎨</div>
-            <div>
-              <div style={{ fontSize:13, fontWeight:600, color:"#111" }}>Design System v3</div>
-              <div style={{ fontSize:11, color:"#888" }}>48 components · MIT</div>
-            </div>
-          </div>
-          <p style={{ fontSize:12.5, color:"#555", lineHeight:1.6, margin:"0 0 12px" }}>A comprehensive design system built for modern product teams.</p>
-          <div style={{ display:"flex", gap:8 }}>
-            <button style={{ padding:"5px 13px", borderRadius:7, background:"#111", color:"#fff", border:"none", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>Install</button>
-            <button style={{ padding:"5px 13px", borderRadius:7, background:"#F5F4F1", color:"#555", border:"1.5px solid #E9E7E3", fontSize:12, cursor:"pointer", fontFamily:"inherit" }}>Docs</button>
-          </div>
-        </div>
-      )}
-      <button onClick={()=>setLoading(true)} style={{ marginTop:4, fontSize:11, color:"#6B6863", background:"none", border:"none", cursor:"pointer", fontFamily:"inherit" }}>↺ Replay</button>
-    </div>
-  );
-}
-
-function TooltipPreview() {
-  const [active, setActive] = useState(null);
-  const items = [
-    { label:"Save", icon:"💾" },
-    { label:"Share", icon:"🔗" },
-    { label:"Duplicate", icon:"📋" },
-    { label:"Archive", icon:"📦" },
-    { label:"Delete", icon:"🗑" },
-  ];
-  return (
-    <div style={{ display:"flex", gap:10, alignItems:"center", justifyContent:"center", padding:"12px 0" }}>
-      {items.map((item,i) => (
-        <div key={i} style={{ position:"relative", display:"inline-flex" }}
-          onMouseEnter={()=>setActive(i)} onMouseLeave={()=>setActive(null)}>
-          <button style={{ width:40, height:40, borderRadius:9, border:"1.5px solid #E9E7E3", background:"#fff", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", transition:"all .13s", boxShadow:active===i?"0 4px 12px rgba(0,0,0,.1)":"none" }}>{item.icon}</button>
-          {active===i && (
-            <div style={{ position:"absolute", bottom:"calc(100% + 8px)", left:"50%", transform:"translateX(-50%)", background:"#111110", color:"#fff", fontSize:11, fontWeight:500, padding:"4px 9px", borderRadius:6, whiteSpace:"nowrap", pointerEvents:"none", boxShadow:"0 4px 12px rgba(0,0,0,.2)" }}>
-              {item.label}
-              <div style={{ position:"absolute", bottom:-4, left:"50%", transform:"translateX(-50%)", width:8, height:8, background:"#111110", rotate:"45deg" }}/>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ChipPreview() {
-  const tags = ["React","TypeScript","Tailwind","GraphQL","Next.js"];
-  const [active, setActive] = useState(["React","Tailwind"]);
-  const [chips, setChips] = useState(["Design","Engineering","Product","Research"]);
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      <div style={{ fontSize:10, fontWeight:700, letterSpacing:1, color:"#B0ACA6" }}>FILTER — CLICK TO TOGGLE</div>
-      <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-        {tags.map(t => (
-          <button key={t} onClick={()=>setActive(active.includes(t)?active.filter(x=>x!==t):[...active,t])} style={{ padding:"3px 11px", borderRadius:100, fontSize:12, fontWeight:500, border:"1.5px solid", fontFamily:"inherit", cursor:"pointer", transition:"all .13s", background:active.includes(t)?"#111110":"transparent", color:active.includes(t)?"#fff":"#6B6863", borderColor:active.includes(t)?"#111110":"#E9E7E3" }}>
-            {active.includes(t)&&"✓ "}{t}
-          </button>
-        ))}
-      </div>
-      <div style={{ fontSize:10, fontWeight:700, letterSpacing:1, color:"#B0ACA6" }}>DELETABLE</div>
-      <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
-        {chips.map(c => (
-          <span key={c} style={{ display:"inline-flex", alignItems:"center", gap:5, background:"#F5F4F1", border:"1.5px solid #E9E7E3", borderRadius:100, padding:"3px 6px 3px 11px", fontSize:12, color:"#3D3B37" }}>
-            {c}
-            <button onClick={()=>setChips(chips.filter(x=>x!==c))} style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:"#A09D98", lineHeight:1, padding:0 }}>×</button>
-          </span>
-        ))}
-        {chips.length===0 && <span style={{ fontSize:12, color:"#B0ACA6", fontStyle:"italic" }}>All removed</span>}
-      </div>
-    </div>
-  );
-}
-
-function BreadcrumbsPreview() {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-      {[["Home","Projects","Frontend","Badge"],["Dashboard","Analytics","Monthly"],["Settings","Team","Permissions"]].map((trail,i) => (
-        <div key={i} style={{ display:"flex", alignItems:"center", gap:4, flexWrap:"wrap" }}>
-          {trail.map((item,j) => (
-            <span key={j} style={{ display:"inline-flex", alignItems:"center", gap:4 }}>
-              {j>0&&<span style={{ color:"#C8C5C0", fontSize:12 }}>›</span>}
-              {j===trail.length-1
-                ? <span style={{ fontSize:13, fontWeight:600, color:"#111" }}>{item}</span>
-                : <a href="#" onClick={e=>e.preventDefault()} style={{ fontSize:13, color:"#3b5bdb", textDecoration:"none" }}>{item}</a>
-              }
-            </span>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CardPreview() {
-  return (
-    <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-      {[
-        { t:"Analytics", s:"Last 30 days", v:"48,291", ch:"+12.4%", color:"#111110", accent:"#F5F4F1" },
-        { t:"Revenue", s:"This month", v:"$9,840", ch:"+8.1%", color:"#10b981", accent:"#ecfdf5" },
-        { t:"Issues", s:"Open tickets", v:"24", ch:"−3 today", color:"#ef4444", accent:"#fff1f2" },
-      ].map(c => (
-        <div key={c.t} style={{ flex:"1 1 120px", border:"1.5px solid #E9E7E3", borderRadius:12, padding:"14px", background:"#fff", cursor:"pointer", transition:"all .2s" }}
-          onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 12px 24px rgba(0,0,0,.07)";e.currentTarget.style.borderColor="transparent";}}
-          onMouseLeave={e=>{e.currentTarget.style.transform="";e.currentTarget.style.boxShadow="";e.currentTarget.style.borderColor="#E9E7E3";}}>
-          <div style={{ fontSize:10.5, color:"#999", fontWeight:500, marginBottom:6, textTransform:"uppercase", letterSpacing:.5 }}>{c.s}</div>
-          <div style={{ fontSize:12.5, fontWeight:600, color:"#555", marginBottom:4 }}>{c.t}</div>
-          <div style={{ fontSize:22, fontWeight:700, color:"#111", marginBottom:4 }}>{c.v}</div>
-          <div style={{ fontSize:11.5, fontWeight:600, color:c.color, background:c.accent, borderRadius:5, padding:"2px 7px", display:"inline-block" }}>{c.ch}</div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function DividerPreview() {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-      <div>
-        <div style={{ fontSize:11, color:"#B0ACA6", marginBottom:8, fontWeight:500, textTransform:"uppercase", letterSpacing:.5 }}>Default horizontal</div>
-        <div style={{ height:1, background:"#E9E7E3" }}/>
-      </div>
-      <div>
-        <div style={{ fontSize:11, color:"#B0ACA6", marginBottom:8, fontWeight:500, textTransform:"uppercase", letterSpacing:.5 }}>OR CONTINUE WITH</div>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ flex:1, height:1, background:"#E9E7E3" }}/>
-          <span style={{ fontSize:12, color:"#B0ACA6", fontWeight:500, padding:"0 4px" }}>OR</span>
-          <div style={{ flex:1, height:1, background:"#E9E7E3" }}/>
-        </div>
-      </div>
-      <div>
-        <div style={{ fontSize:11, color:"#B0ACA6", marginBottom:8, fontWeight:500, textTransform:"uppercase", letterSpacing:.5 }}>With label</div>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ flex:1, height:1, background:"#E9E7E3" }}/>
-          <span style={{ fontSize:11, fontWeight:600, color:"#888", padding:"2px 8px", border:"1.5px solid #E9E7E3", borderRadius:100 }}>Section break</span>
-          <div style={{ flex:1, height:1, background:"#E9E7E3" }}/>
-        </div>
-      </div>
-      <div>
-        <div style={{ fontSize:11, color:"#B0ACA6", marginBottom:8, fontWeight:500, textTransform:"uppercase", letterSpacing:.5 }}>Gradient</div>
-        <div style={{ height:1, background:"linear-gradient(90deg, transparent, #111110, transparent)" }}/>
-      </div>
-    </div>
-  );
-}
-
-const PREVIEWS = {
-  Overview: OverviewPreview, Badge: BadgePreview, Button: ButtonPreview, Input: InputPreview,
-  Modal: ModalPreview, Progress: ProgressPreview, Toast: ToastPreview, Accordion: AccordionPreview,
-  Tabs: TabsPreview, Pagination: PaginationPreview, Alert: AlertPreview, Toggle: TogglePreview,
-  Checkbox: CheckboxPreview, Select: SelectPreview, Radio: RadioPreview, Skeleton: SkeletonPreview,
-  Tooltip: TooltipPreview, Chip: ChipPreview, Breadcrumbs: BreadcrumbsPreview, Card: CardPreview,
-  Divider: DividerPreview,
-};
-
-/* ── SYNTAX HIGHLIGHT ─────────────────────────────────── */
-function Highlight({ code }) {
-  const html = code
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/\b(import|from|export|default|const|function|return|let|var|async|await|true|false|null|undefined|class|if|else|for|of|in|new)\b/g,'<span style="color:#c678dd">$1</span>')
-    .replace(/(\/\/[^\n]*)/g,'<span style="color:#7f848e;font-style:italic">$1</span>')
-    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g,'<span style="color:#98c379">$1</span>')
-    .replace(/\b(\d+(?:\.\d+)?)\b/g,'<span style="color:#d19a66">$1</span>');
-  return <code dangerouslySetInnerHTML={{ __html: html }} style={{ fontFamily:"'Fira Code', 'Cascadia Code', monospace", fontSize:12.5, lineHeight:1.7 }}/>;
-}
-
-/* ── STYLES ───────────────────────────────────────────── */
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body, #root { height: 100%; font-family: 'DM Sans', sans-serif; }
-  .cd-root { display: flex; height: 100vh; background: #FAFAF8; font-family: 'DM Sans', sans-serif; overflow: hidden; }
-  .cd-sidebar { width: 248px; flex-shrink: 0; background: #fff; border-right: 1.5px solid #E9E7E3; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
-  .cd-sidebar-logo { padding: 18px 18px 14px; display: flex; align-items: center; gap: 9px; border-bottom: 1.5px solid #F0EEE9; }
-  .cd-sidebar-search { padding: 10px 12px; border-bottom: 1.5px solid #F0EEE9; }
-  .cd-sidebar-search input { width: 100%; padding: 7px 10px; border: 1.5px solid #E9E7E3; border-radius: 8px; font-size: 12.5px; font-family: 'DM Sans', sans-serif; outline: none; background: #FAFAF8; color: #111; transition: border-color .15s; }
-  .cd-sidebar-search input:focus { border-color: #111110; }
-  .cd-sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 0 16px; }
-  .cd-sidebar-nav::-webkit-scrollbar { width: 3px; }
-  .cd-sidebar-nav::-webkit-scrollbar-thumb { background: #E0DDD8; border-radius: 10px; }
-  .cd-nav-group { margin-bottom: 2px; }
-  .cd-nav-section { font-size: 10px; font-weight: 700; letter-spacing: .8px; color: #B0ACA6; padding: 8px 16px 4px; text-transform: uppercase; }
-  .cd-nav-btn { display: block; width: 100%; text-align: left; padding: 6px 16px; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; color: #6B6863; border-radius: 0; transition: all .12s; }
-  .cd-nav-btn:hover { color: #111110; background: #F5F4F1; }
-  .cd-nav-btn.active { color: #111110; background: #F0EEE9; font-weight: 600; border-right: 2.5px solid #111110; }
-  .cd-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-  .cd-topbar { display: flex; align-items: center; gap: 8px; padding: 0 20px; height: 52px; border-bottom: 1.5px solid #E9E7E3; background: #fff; flex-shrink: 0; }
-  .cd-fw-btn { padding: 5px 13px; border-radius: 7px; border: 1.5px solid transparent; background: none; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 500; cursor: pointer; color: #6B6863; transition: all .13s; }
-  .cd-fw-btn:hover { color: #111; background: #F5F4F1; }
-  .cd-fw-btn.active { background: #111110; color: #fff; border-color: #111110; }
-  .cd-content { flex: 1; overflow-y: auto; display: flex; gap: 0; min-height: 0; }
-  .cd-content::-webkit-scrollbar { width: 4px; }
-  .cd-content::-webkit-scrollbar-thumb { background: #E0DDD8; border-radius: 10px; }
-  .cd-article { flex: 1; padding: 32px 36px; max-width: 860px; min-width: 0; }
-  .cd-toc { width: 200px; flex-shrink: 0; padding: 28px 18px; border-left: 1.5px solid #E9E7E3; position: sticky; top: 0; height: fit-content; }
-  .cd-section { margin-bottom: 32px; }
-  .cd-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: #B0ACA6; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-  .cd-section-title::after { content: ''; flex: 1; height: 1px; background: #E9E7E3; }
-  .cd-preview-box { border: 1.5px solid #E9E7E3; border-radius: 12px; overflow: hidden; background: #fff; }
-  .cd-preview-inner { padding: 24px; }
-  .cd-code-box { background: #282c34; border-radius: 12px; overflow: hidden; }
-  .cd-code-tabs { display: flex; gap: 0; background: #21252b; border-bottom: 1.5px solid #333; padding: 0 8px; }
-  .cd-code-tab { padding: 8px 12px; background: none; border: none; font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; color: #7f848e; border-bottom: 2px solid transparent; transition: all .13s; }
-  .cd-code-tab:hover { color: #abb2bf; }
-  .cd-code-tab.active { color: #abb2bf; border-bottom-color: #61afef; }
-  .cd-code-copy { padding: 8px 12px; background: none; border: none; font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; color: #7f848e; margin-left: auto; transition: color .13s; }
-  .cd-code-copy:hover { color: #abb2bf; }
-  .cd-code-body { padding: 18px 20px; overflow-x: auto; }
-  .cd-code-body pre { margin: 0; white-space: pre; }
-  .cd-props-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  .cd-props-table th { text-align: left; padding: 8px 12px; font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: #B0ACA6; border-bottom: 1.5px solid #E9E7E3; }
-  .cd-props-table td { padding: 9px 12px; border-bottom: 1.5px solid #F5F4F1; color: #555; vertical-align: top; }
-  .cd-props-table tr:last-child td { border-bottom: none; }
-  .cd-props-table tr:hover td { background: #FAFAF8; }
-  .cd-prop-name { font-family: 'DM Mono', monospace; color: #111; font-weight: 500; font-size: 12px; }
-  .cd-prop-type { font-family: 'DM Mono', monospace; color: #3b5bdb; font-size: 11.5px; }
-  .cd-prop-def { font-family: 'DM Mono', monospace; color: #10b981; font-size: 11.5px; }
-  .cd-toc-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: #B0ACA6; margin-bottom: 10px; }
-  .cd-toc-btn { display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; color: #888; padding: 4px 0; transition: color .13s; }
-  .cd-toc-btn:hover { color: #111; }
-  .cd-import-pill { display: inline-flex; align-items: center; gap: 6px; background: #F5F4F1; border: 1.5px solid #E9E7E3; border-radius: 8px; padding: 6px 12px; font-family: 'DM Mono', monospace; font-size: 12px; color: #555; margin-bottom: 24px; }
-  .cd-badge-live { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 100px; background: #ecfdf5; color: #10b981; border: 1.5px solid #a7f3d0; }
-  .cd-preview-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1.5px solid #F0EEE9; background: #FAFAF8; }
-  .cd-mobile-toggle { display: none; padding: 5px 10px; border-radius:7px; border: 1.5px solid #E9E7E3; background: #fff; font-size: 13px; cursor: pointer; }
-  @media (max-width: 900px) {
-    .cd-sidebar { position: fixed; z-index: 100; left: -260px; transition: left .25s; top: 0; height: 100vh; }
-    .cd-sidebar.open { left: 0; box-shadow: 4px 0 24px rgba(0,0,0,.12); }
-    .cd-mobile-toggle { display: flex; }
-    .cd-toc { display: none; }
-    .cd-article { padding: 20px 16px; }
-    .cd-overlay { display: block !important; }
-  }
-  @media (max-width: 1100px) { .cd-toc { display: none; } }
-  .cd-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 90; }
-  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @keyframes fadeIn { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform: translateY(0); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+@keyframes progress { 0%{width:0%} 60%{width:85%} 100%{width:100%} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
 `;
 
-/* ── MAIN COMPONENT ───────────────────────────────────── */
-export default function ComponentDocs() {
-  const [selected, setSelected] = useState("Overview");
-  const [fw, setFw] = useState("React");
+/* ────────────────────────────────────────────────────────────
+   NAV STRUCTURE
+──────────────────────────────────────────────────────────── */
+const NAV = [
+  { id: "overview", label: "Overview", count: null, section: "Start" },
+  { id: "hero", label: "Hero", count: 5, section: "Components" },
+  { id: "avatar", label: "Avatar", count: 4, section: "Components" },
+  { id: "button", label: "Button", count: 8, section: "Components" },
+  { id: "card", label: "Card", count: 6, section: "Components" },
+  { id: "features", label: "Features", count: 4, section: "Components" },
+  { id: "loading", label: "Loading", count: 4, section: "Components" },
+  { id: "modal", label: "Modal", count: 4, section: "Components" },
+  { id: "nav", label: "Nav", count: 5, section: "Components" },
+  { id: "tab", label: "Tab", count: 5, section: "Components" },
+  { id: "footer", label: "Footer", count: 3, section: "Components" },
+  { id: "badge", label: "Badge", count: 6, section: "Components" },
+  { id: "input", label: "Input", count: 5, section: "Components" },
+];
+
+/* ────────────────────────────────────────────────────────────
+   SYNTAX HIGHLIGHTER
+──────────────────────────────────────────────────────────── */
+function Highlight({ code }) {
+  const escaped = code.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const html = escaped
+    .replace(/\b(import|export|from|default|const|let|var|function|return|if|else|async|await|true|false|null|undefined|class|new|for|of)\b/g, '<span style="color:#c678dd">$1</span>')
+    .replace(/(\/\/[^\n]*)/g, '<span style="color:#5c6370;font-style:italic">$1</span>')
+    .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g, '<span style="color:#98c379">$1</span>')
+    .replace(/\b(\d+)\b/g, '<span style="color:#d19a66">$1</span>');
+  return <code dangerouslySetInnerHTML={{ __html: html }} style={{ fontFamily:"'Geist Mono',monospace", fontSize:12.5, lineHeight:1.75 }}/>;
+}
+
+/* ────────────────────────────────────────────────────────────
+   CODE BLOCK COMPONENT
+──────────────────────────────────────────────────────────── */
+function CodeBlock({ code, lang = "jsx" }) {
   const [copied, setCopied] = useState(false);
-  const [search, setSearch] = useState("");
-  const [mobileSidebar, setMobileSidebar] = useState(false);
-  const contentRef = useRef(null);
-
-  const meta = META[selected] || {};
-  const props = PROPS[selected] || [];
-  const code = (CODE[selected]||{})[fw] || (CODE[selected]||{})["React"] || "// Coming soon";
-  const PreviewComp = PREVIEWS[selected] || (() => (
-    <div style={{ padding:32, textAlign:"center", color:"#B0ACA6" }}>
-      <div style={{ fontSize:28, marginBottom:8 }}>🧩</div>
-      <div style={{ fontSize:13 }}>Interactive preview</div>
-    </div>
-  ));
-
-  const filtered = NAV_GROUPS
-    .map(g => ({ ...g, items: g.items.filter(i => i.toLowerCase().includes(search.toLowerCase())) }))
-    .filter(g => g.items.length > 0);
-
-  const select = (item) => {
-    setSelected(item);
-    setMobileSidebar(false);
-    contentRef.current?.scrollTo({ top:0, behavior:"smooth" });
-  };
-
   const copy = () => {
-    try { navigator.clipboard.writeText(code); } catch(_) {}
+    try { navigator.clipboard.writeText(code); } catch(e){}
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+  return (
+    <div className="demo-code-box">
+      <div className="code-header">
+        <span className="code-lang">{lang}</span>
+        <button className={`copy-btn${copied?" copied":""}`} onClick={copy}>{copied ? "✓ Copied" : "Copy"}</button>
+      </div>
+      <div className="code-body">
+        <pre><Highlight code={code}/></pre>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   COMPONENT DEFINITIONS
+──────────────────────────────────────────────────────────── */
+
+// ── HERO ──────────────────────────────────────────
+function HeroDemo({ variant = 1 }) {
+  if (variant === 2) return (
+    <div style={{ width:"100%", display:"flex", alignItems:"center", gap:24, padding:"8px 0" }}>
+      <div style={{ flex:1 }}>
+        <div className="badge badge-purple" style={{ marginBottom:10 }}>🎉 New components</div>
+        <h2 style={{ fontSize:22, fontWeight:800, color:"var(--text)", marginBottom:8, letterSpacing:"-.3px" }}>Build UIs faster<br/>than ever before</h2>
+        <p style={{ fontSize:13, color:"var(--text2)", lineHeight:1.6, marginBottom:14 }}>Production-ready components with dark-mode support out of the box.</p>
+        <div className="hero-btns" style={{ justifyContent:"flex-start" }}>
+          <button className="btn btn-primary">Get started</button>
+          <button className="btn btn-secondary">View docs</button>
+        </div>
+      </div>
+      <div style={{ width:100, height:100, borderRadius:16, background:"linear-gradient(135deg,rgba(124,111,255,.3),rgba(167,139,250,.1))", border:"1px solid rgba(124,111,255,.2)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:36, flexShrink:0 }}>⬡</div>
+    </div>
+  );
+  if (variant === 3) return (
+    <div className="hero-demo" style={{ padding:"8px 0" }}>
+      <div style={{ display:"flex", gap:6, justifyContent:"center", marginBottom:12, flexWrap:"wrap" }}>
+        {["React","Vue","TypeScript"].map(t => <span key={t} className="badge badge-default">{t}</span>)}
+      </div>
+      <h2 className="hero-h" style={{ fontSize:22 }}>The component library<br/>you've been waiting for</h2>
+      <p className="hero-p" style={{ fontSize:13 }}>Copy, paste, ship. No dependencies, no configuration.</p>
+      <div className="hero-btns">
+        <button className="btn btn-primary btn-sm">Browse components</button>
+        <button className="btn btn-ghost btn-sm">View on GitHub ↗</button>
+      </div>
+    </div>
+  );
+  return (
+    <div className="hero-demo">
+      <div className="hero-eyebrow"><span className="badge-dot" style={{ width:6,height:6 }}/>v3.0 is here</div>
+      <h2 className="hero-h">Design. Build. Ship.</h2>
+      <p className="hero-p">Copy-paste components for your next project. Dark mode by default.</p>
+      <div className="hero-btns">
+        <button className="btn btn-primary">Get started →</button>
+        <button className="btn btn-secondary">See examples</button>
+      </div>
+    </div>
+  );
+}
+
+const HERO_CODE = `// Hero — Centered variant
+export function Hero() {
+  return (
+    <section className="hero">
+      <div className="eyebrow">v3.0 is here</div>
+      <h1>Design. Build. Ship.</h1>
+      <p>Copy-paste components for your next project.</p>
+      <div className="hero-actions">
+        <Button variant="primary">Get started →</Button>
+        <Button variant="secondary">See examples</Button>
+      </div>
+    </section>
+  );
+}`;
+
+// ── AVATAR ──────────────────────────────────────────
+const AVATARS = [
+  { initials:"AK", color:"#7c6fff" },
+  { initials:"JS", color:"#22d3a0" },
+  { initials:"MR", color:"#f472b6" },
+  { initials:"TL", color:"#fbbf24" },
+  { initials:"DK", color:"#60a5fa" },
+];
+function AvatarDemo({ variant = 1 }) {
+  if (variant === 2) return (
+    <div style={{ display:"flex", gap:14, alignItems:"center" }}>
+      {["xs","sm","md","lg","xl"].map((s,i) => (
+        <div key={s} className={`avatar avatar-${s}`} style={{ background: AVATARS[i].color + "22", borderColor: AVATARS[i].color + "55", color: AVATARS[i].color }}>
+          {AVATARS[i].initials}
+        </div>
+      ))}
+    </div>
+  );
+  if (variant === 3) return (
+    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+      {AVATARS.slice(0,4).map((a,i) => (
+        <div key={i} className="avatar avatar-md" style={{ background: a.color+"22", borderColor: a.color+"55", color: a.color, position:"relative" }}>
+          {a.initials}
+          <div className={`status-dot ${["status-online","status-away","status-online","status-offline"][i]}`}/>
+        </div>
+      ))}
+      <div style={{ marginLeft:4, fontSize:12, color:"var(--text2)" }}>4 members</div>
+    </div>
+  );
+  return (
+    <div style={{ display:"flex", alignItems:"center" }}>
+      <div className="avatar-group">
+        {AVATARS.slice(0,5).map((a,i) => (
+          <div key={i} className="avatar avatar-md" style={{ background: a.color+"22", borderColor: a.color+"55", color: a.color }}>
+            {a.initials}
+          </div>
+        ))}
+        <div className="avatar avatar-md" style={{ background:"var(--bg3)", color:"var(--text2)" }}>+9</div>
+      </div>
+    </div>
+  );
+}
+
+const AVATAR_CODE = `import { Avatar, AvatarGroup } from "@devui/react";
+
+// Single avatar with status
+<Avatar size="md" initials="AK" color="purple" status="online" />
+
+// Avatar group
+<AvatarGroup max={5}>
+  <Avatar initials="AK" />
+  <Avatar initials="JS" />
+  <Avatar initials="MR" />
+</AvatarGroup>`;
+
+// ── BUTTONS ──────────────────────────────────────────
+function ButtonDemo({ variant = 1 }) {
+  const [loading, setLoading] = useState(false);
+  if (variant === 2) return (
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+      {["sm","md","lg"].map(s => (
+        <button key={s} className={`btn btn-primary btn-${s}`}>{s.toUpperCase()}</button>
+      ))}
+      <button className="btn btn-primary btn-icon">⬡</button>
+    </div>
+  );
+  if (variant === 3) return (
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+      <button className="btn btn-primary" onClick={() => { setLoading(true); setTimeout(() => setLoading(false), 2000); }}>
+        {loading ? <><div className="spinner"/><span>Loading…</span></> : "Click me"}
+      </button>
+      <button className="btn btn-success">✓ Done</button>
+      <button className="btn btn-danger">Delete</button>
+      <button className="btn btn-outline" style={{ opacity:.5, cursor:"not-allowed" }} disabled>Disabled</button>
+    </div>
+  );
+  return (
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+      {[["btn-primary","Primary"],["btn-secondary","Secondary"],["btn-outline","Outline"],["btn-ghost","Ghost"],["btn-danger","Danger"]].map(([c,l]) => (
+        <button key={c} className={`btn ${c}`}>{l}</button>
+      ))}
+    </div>
+  );
+}
+
+const BUTTON_CODE = `import { Button } from "@devui/react";
+
+// Variants
+<Button variant="primary">Primary</Button>
+<Button variant="secondary">Secondary</Button>
+<Button variant="outline">Outline</Button>
+<Button variant="ghost">Ghost</Button>
+<Button variant="danger">Danger</Button>
+
+// With loading state
+<Button variant="primary" loading={saving} onClick={save}>
+  Save Changes
+</Button>
+
+// Sizes
+<Button size="sm">Small</Button>
+<Button size="md">Medium</Button>
+<Button size="lg">Large</Button>`;
+
+// ── CARD ──────────────────────────────────────────
+function CardDemo({ variant = 1 }) {
+  if (variant === 2) return (
+    <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+      {[["📊","Analytics","48,291 events this month","#7c6fff"],["💰","Revenue","$12,840 earned","#22d3a0"],["🐛","Issues","3 open bugs","#ff6b6b"]].map(([icon,title,desc,color]) => (
+        <div key={title} className="card" style={{ width:150 }}>
+          <div style={{ padding:"14px 14px 0" }}>
+            <div style={{ width:32,height:32,borderRadius:8,background:color+"22",border:`1px solid ${color}44`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,marginBottom:10 }}>{icon}</div>
+            <div className="card-title" style={{ fontSize:12 }}>{title}</div>
+            <div className="card-text" style={{ fontSize:11 }}>{desc}</div>
+          </div>
+          <div className="card-footer">
+            <span className="card-stat" style={{ color }}>{icon}</span>
+            <span className="card-stat">→</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+  if (variant === 3) return (
+    <div className="card" style={{ width:220 }}>
+      <div className="card-img">🎨</div>
+      <div className="card-body">
+        <div className="card-title">Design System</div>
+        <div className="card-text">A complete component library for modern apps.</div>
+      </div>
+      <div className="card-footer">
+        <span className="card-stat"><span>48</span> components</span>
+        <span className="badge badge-success">v3.0</span>
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ display:"flex", gap:12 }}>
+      {[
+        { img:"🚀", title:"Launch Kit", text:"Everything you need to ship fast.", color:"#7c6fff" },
+        { img:"⚡", title:"Pro Plan", text:"Unlock all components.", color:"#fbbf24" },
+      ].map(c => (
+        <div key={c.title} className="card" style={{ width:180 }}>
+          <div className="card-img" style={{ background:`linear-gradient(135deg,${c.color}44 0%, var(--bg) 100%)`, height:80, fontSize:24 }}>{c.img}</div>
+          <div className="card-body">
+            <div className="card-title" style={{ fontSize:13 }}>{c.title}</div>
+            <div className="card-text" style={{ fontSize:11.5 }}>{c.text}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const CARD_CODE = `import { Card } from "@devui/react";
+
+<Card>
+  <Card.Image src="/thumb.png" alt="Design System" />
+  <Card.Body>
+    <Card.Title>Design System</Card.Title>
+    <Card.Text>A complete component library for modern apps.</Card.Text>
+  </Card.Body>
+  <Card.Footer>
+    <span>48 components</span>
+    <Badge variant="success">v3.0</Badge>
+  </Card.Footer>
+</Card>`;
+
+// ── FEATURES ──────────────────────────────────────────
+function FeaturesDemo({ variant = 1 }) {
+  const items = [
+    { icon:"⚡", t:"Fast", d:"Optimized for performance" },
+    { icon:"🔒", t:"Secure", d:"Built with security in mind" },
+    { icon:"♿", t:"Accessible", d:"WCAG 2.1 AA compliant" },
+    { icon:"🌙", t:"Dark Mode", d:"Dark by default" },
+    { icon:"📦", t:"Modular", d:"Import only what you need" },
+    { icon:"🎨", t:"Themeable", d:"CSS variables throughout" },
+  ];
+  if (variant === 2) return (
+    <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
+      {items.slice(0,3).map(f => (
+        <div key={f.t} className="feature-item" style={{ flex:"1 1 120px" }}>
+          <div className="feature-icon">{f.icon}</div>
+          <div className="feature-title">{f.t}</div>
+          <div className="feature-desc">{f.d}</div>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div className="features-grid" style={{ gridTemplateColumns:"repeat(3,1fr)" }}>
+      {items.slice(0,3).map(f => (
+        <div key={f.t} className="feature-item">
+          <div className="feature-icon">{f.icon}</div>
+          <div className="feature-title">{f.t}</div>
+          <div className="feature-desc">{f.d}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const FEATURES_CODE = `import { Features } from "@devui/react";
+
+const items = [
+  { icon: "⚡", title: "Fast", desc: "Optimized for performance" },
+  { icon: "🔒", title: "Secure", desc: "Built with security in mind" },
+  { icon: "♿", title: "Accessible", desc: "WCAG 2.1 AA compliant" },
+];
+
+<Features items={items} columns={3} />`;
+
+// ── LOADING ──────────────────────────────────────────
+function LoadingDemo({ variant = 1 }) {
+  const [prog, setProg] = useState(42);
+  useEffect(() => {
+    const t = setInterval(() => setProg(p => p >= 100 ? 8 : p + 1), 60);
+    return () => clearInterval(t);
+  }, []);
+  if (variant === 2) return (
+    <div style={{ display:"flex", gap:24, alignItems:"center", flexWrap:"wrap" }}>
+      <div className="spinner-dots">
+        {[0,1,2].map(i => <div key={i} className="spinner-dot" style={{ animationDelay:`${i*.15}s` }}/>)}
+      </div>
+      <div style={{ width:160 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+          <span style={{ fontSize:11, color:"var(--text2)" }}>Uploading…</span>
+          <span style={{ fontSize:11, color:"var(--accent2)", fontWeight:700 }}>{prog}%</span>
+        </div>
+        <div className="progress-bar">
+          <div style={{ height:"100%", width:`${prog}%`, background:"linear-gradient(90deg,var(--accent),var(--accent2))", borderRadius:100, transition:"width .08s" }}/>
+        </div>
+      </div>
+    </div>
+  );
+  if (variant === 3) return (
+    <div style={{ display:"flex", gap:16, alignItems:"center" }}>
+      <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+        {["var(--accent)","var(--green)","var(--red)"].map((c,i) => (
+          <div key={i} style={{ width:20,height:20,borderRadius:"50%",border:`2.5px solid`,borderColor:`${c} transparent transparent transparent`,animation:`spin .7s linear infinite`,animationDelay:`${i*.15}s`,color:c }}/>
+        ))}
+      </div>
+      <div style={{ display:"flex", flexDirection:"column", gap:7 }}>
+        {[100,72,48].map((w,i) => (
+          <div key={i} className="skeleton-line" style={{ width:w }}/>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ display:"flex", gap:28, alignItems:"center", flexWrap:"wrap" }}>
+      <div className="spinner-lg"/>
+      <div style={{ display:"flex", gap:7, alignItems:"center" }}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{ width:9,height:9,borderRadius:"50%",background:"var(--accent)",animation:`pulse 1.2s ease infinite`,animationDelay:`${i*.2}s`}}/>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:7, alignItems:"flex-end", height:28 }}>
+        {[0,1,2,3].map(i => (
+          <div key={i} style={{ width:5,background:`var(--accent)`,borderRadius:3,animation:`bounce .8s ease infinite`,animationDelay:`${i*.12}s`, height:14+i*4 }}/>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const LOADING_CODE = `import { Spinner, Progress, Skeleton } from "@devui/react";
+
+// Spinner
+<Spinner size="lg" color="purple" />
+
+// Progress bar
+<Progress value={72} color="purple" size="sm" />
+
+// Skeleton loader
+<Skeleton.Line width={200} />
+<Skeleton.Circle size={40} />`;
+
+// ── MODAL ──────────────────────────────────────────
+function ModalDemo({ variant = 1 }) {
+  const [open, setOpen] = useState(false);
+  const [type, setType] = useState("default");
+  return (
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+      <button className="btn btn-primary" onClick={() => { setType("default"); setOpen(true); }}>Open Modal</button>
+      <button className="btn btn-secondary" onClick={() => { setType("confirm"); setOpen(true); }}>Confirm Dialog</button>
+      <button className="btn btn-danger" onClick={() => { setType("danger"); setOpen(true); }}>Delete Dialog</button>
+      {open && (
+        <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && setOpen(false)}>
+          <div className="modal-box">
+            <div className="modal-header">
+              <div>
+                <div className="modal-title">
+                  {type==="danger" ? "⚠️ Delete Project" : type==="confirm" ? "✅ Confirm Action" : "📋 Modal Title"}
+                </div>
+                <div className="modal-sub">
+                  {type==="danger" ? "This cannot be undone" : type==="confirm" ? "Please review before continuing" : "Subtitle or description"}
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              {type==="danger"
+                ? "Deleting this project will permanently remove all files, data, and associated resources. This action is irreversible."
+                : type==="confirm"
+                ? "You're about to perform an important action. Make sure you've reviewed all the details before proceeding."
+                : "This is a modal component. It supports multiple sizes, custom content, and accessible focus trapping."}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>Cancel</button>
+              <button className={`btn btn-sm ${type==="danger"?"btn-danger":"btn-primary"}`} onClick={() => setOpen(false)}>
+                {type==="danger" ? "Yes, delete" : type==="confirm" ? "Confirm" : "Got it"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const MODAL_CODE = `import { Modal, useModal } from "@devui/react";
+
+function Example() {
+  const { open, onOpen, onClose } = useModal();
+  return (
+    <>
+      <Button onClick={onOpen}>Open Modal</Button>
+      <Modal open={open} onClose={onClose} title="Modal Title">
+        <Modal.Body>
+          Your modal content goes here.
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={onClose}>Confirm</Button>
+        </Modal.Footer>
+      </Modal>
+    </>
+  );
+}`;
+
+// ── NAV ──────────────────────────────────────────
+function NavDemo({ variant = 1 }) {
+  const [active, setActive] = useState("Home");
+  const links = ["Home","Products","Docs","Blog"];
+  if (variant === 2) return (
+    <div className="nav-demo" style={{ borderRadius:100 }}>
+      <span className="nav-logo">⬡ Kit</span>
+      {links.map(l => (
+        <button key={l} onClick={() => setActive(l)} className={`nav-demo-link${active===l?" active":""}`}>{l}</button>
+      ))}
+      <div className="nav-spacer"/>
+      <button className="btn btn-primary btn-sm">Sign up</button>
+    </div>
+  );
+  if (variant === 3) return (
+    <div style={{ display:"flex", flexDirection:"column", gap:0, background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:12, overflow:"hidden", width:"100%" }}>
+      <div style={{ padding:"12px 16px", borderBottom:"1px solid var(--border)", display:"flex", alignItems:"center", gap:8 }}>
+        <span className="nav-logo" style={{ fontSize:14 }}>⬡ Dev</span>
+        <div className="nav-spacer"/>
+        <button className="btn btn-ghost btn-sm">Sign in</button>
+        <button className="btn btn-primary btn-sm">Get started</button>
+      </div>
+      <div style={{ display:"flex", gap:2, padding:"4px 8px" }}>
+        {links.map(l => (
+          <button key={l} onClick={() => setActive(l)} className={`nav-demo-link${active===l?" active":""}`} style={{ fontSize:12 }}>{l}</button>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <div className="nav-demo" style={{ width:"100%" }}>
+      <span className="nav-logo">⬡ DevUI</span>
+      {links.map(l => (
+        <button key={l} onClick={() => setActive(l)} className={`nav-demo-link${active===l?" active":""}`}>{l}</button>
+      ))}
+      <div className="nav-spacer"/>
+      <button className="github-btn" style={{ fontSize:11 }}>⭐ GitHub</button>
+      <button className="btn btn-primary btn-sm">Get started</button>
+    </div>
+  );
+}
+
+const NAV_CODE = `import { Navbar } from "@devui/react";
+
+<Navbar>
+  <Navbar.Brand>⬡ DevUI</Navbar.Brand>
+  <Navbar.Links>
+    <Navbar.Link href="/">Home</Navbar.Link>
+    <Navbar.Link href="/products">Products</Navbar.Link>
+    <Navbar.Link href="/docs">Docs</Navbar.Link>
+  </Navbar.Links>
+  <Navbar.Actions>
+    <Button variant="ghost">Sign in</Button>
+    <Button variant="primary">Get started</Button>
+  </Navbar.Actions>
+</Navbar>`;
+
+// ── TAB ──────────────────────────────────────────
+function TabDemo({ variant = 1 }) {
+  const [active, setActive] = useState(0);
+  const [pill, setPill] = useState(0);
+  const tabs = [
+    { label:"Overview", content:"Get started with DevUI components. Zero configuration, full TypeScript support, and WCAG 2.1 AA accessibility built-in." },
+    { label:"Components", content:"Browse 48+ production-ready components across 11 categories. From buttons to complex data tables." },
+    { label:"Theming", content:"Customize every token using CSS variables. Switch between dark and light mode with a single line." },
+    { label:"API", content:"Full TypeScript API with intelligent autocomplete. Every prop documented with examples." },
+  ];
+  if (variant === 2) return (
+    <div style={{ width:"100%" }}>
+      <div style={{ marginBottom:16, display:"flex", justifyContent:"center" }}>
+        <div className="tabs-pill">
+          {tabs.slice(0,3).map((t,i) => (
+            <button key={i} onClick={() => setPill(i)} className={`tab-pill-btn${pill===i?" active":""}`}>{t.label}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ background:"var(--bg3)", border:"1px solid var(--border)", borderRadius:10, padding:"14px 16px", fontSize:13, color:"var(--text2)", lineHeight:1.6 }}>
+        {tabs[pill].content}
+      </div>
+    </div>
+  );
+  if (variant === 3) return (
+    <div className="tabs-box" style={{ width:"100%" }}>
+      <div className="tabs-list" style={{ flexDirection:"column", border:"none", borderRight:"1px solid var(--border)", padding:"8px 4px", width:110, position:"absolute", height:"100%", background:"var(--bg2)" }}>
+        {tabs.slice(0,3).map((t,i) => (
+          <button key={i} onClick={() => setActive(i)} className={`tab-btn${active===i?" active":""}`} style={{ textAlign:"left", width:"100%", borderBottom:"none", borderRight:`2px solid ${active===i?"var(--accent)":"transparent"}` }}>{t.label}</button>
+        ))}
+      </div>
+    </div>
+  );
+  return (
+    <div className="tabs-box" style={{ width:"100%" }}>
+      <div className="tabs-list">
+        {tabs.slice(0,3).map((t,i) => (
+          <button key={i} onClick={() => setActive(i)} className={`tab-btn${active===i?" active":""}`}>{t.label}</button>
+        ))}
+      </div>
+      <div className="tab-content">{tabs[active].content}</div>
+    </div>
+  );
+}
+
+const TAB_CODE = `import { Tabs } from "@devui/react";
+
+// Underline variant (default)
+<Tabs defaultIndex={0} variant="underline">
+  <Tabs.List>
+    <Tabs.Tab>Overview</Tabs.Tab>
+    <Tabs.Tab>Components</Tabs.Tab>
+    <Tabs.Tab>Theming</Tabs.Tab>
+  </Tabs.List>
+  <Tabs.Panel>Overview content...</Tabs.Panel>
+  <Tabs.Panel>Components content...</Tabs.Panel>
+  <Tabs.Panel>Theming content...</Tabs.Panel>
+</Tabs>
+
+// Pill variant
+<Tabs variant="pill">...</Tabs>`;
+
+// ── FOOTER ──────────────────────────────────────────
+function FooterDemo({ variant = 1 }) {
+  if (variant === 2) return (
+    <div style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:12, padding:"16px 20px", width:"100%" }}>
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <div className="logo-dot"/>
+          <span style={{ fontSize:14, fontWeight:700, color:"var(--text)" }}>DevUI</span>
+        </div>
+        <div style={{ display:"flex", gap:16 }}>
+          {["Twitter","GitHub","Discord"].map(l => (
+            <span key={l} style={{ fontSize:12.5, color:"var(--text2)", cursor:"pointer" }}>{l}</span>
+          ))}
+        </div>
+        <span style={{ fontSize:11.5, color:"var(--text3)" }}>© 2025 DevUI</span>
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ background:"var(--bg2)", border:"1px solid var(--border)", borderRadius:12, padding:"20px", width:"100%" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"1.5fr 1fr 1fr", gap:20, marginBottom:16 }}>
+        <div>
+          <div style={{ fontSize:14, fontWeight:800, color:"var(--text)", marginBottom:6, display:"flex", alignItems:"center", gap:6 }}>
+            <div className="logo-dot"/>DevUI
+          </div>
+          <div style={{ fontSize:11.5, color:"var(--text2)", lineHeight:1.5 }}>Production-ready components for modern apps.</div>
+        </div>
+        {[["Resources",["Docs","Components","Templates"]],["Company",["About","Blog","GitHub"]]].map(([title,links]) => (
+          <div key={title}>
+            <div style={{ fontSize:10, fontWeight:700, textTransform:"uppercase", letterSpacing:.8, color:"var(--text3)", marginBottom:8 }}>{title}</div>
+            {links.map(l => <div key={l} style={{ fontSize:12, color:"var(--text2)", marginBottom:5, cursor:"pointer" }}>{l}</div>)}
+          </div>
+        ))}
+      </div>
+      <div style={{ borderTop:"1px solid var(--border)", paddingTop:12, display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
+        <span style={{ fontSize:11, color:"var(--text3)" }}>© 2025 DevUI. MIT License.</span>
+        <div style={{ display:"flex", gap:6 }}>
+          {["𝕏","⭐","💬"].map(i => (
+            <div key={i} className="social-btn" style={{ width:26,height:26 }}>{i}</div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const FOOTER_CODE = `import { Footer } from "@devui/react";
+
+<Footer>
+  <Footer.Brand>
+    <Footer.Logo>DevUI</Footer.Logo>
+    <Footer.Tagline>Production-ready components.</Footer.Tagline>
+  </Footer.Brand>
+  <Footer.Links title="Resources">
+    <Footer.Link href="/docs">Docs</Footer.Link>
+    <Footer.Link href="/components">Components</Footer.Link>
+  </Footer.Links>
+  <Footer.Bottom>
+    <span>© 2025 DevUI. MIT License.</span>
+  </Footer.Bottom>
+</Footer>`;
+
+// ── BADGE ──────────────────────────────────────────
+function BadgeDemo({ variant = 1 }) {
+  if (variant === 2) return (
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+      {[["badge-default","Default"],["badge-success","✓ Active"],["badge-warning","⚠ Pending"],["badge-error","✕ Error"],["badge-info","ℹ Info"],["badge-purple","✦ Beta"]].map(([c,l]) => (
+        <span key={l} className={`badge ${c}`}>{l}</span>
+      ))}
+    </div>
+  );
+  return (
+    <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+      {[["badge-success","<span class='badge-dot'></span>Online"],["badge-warning","<span class='badge-dot'></span>Away"],["badge-error","<span class='badge-dot'></span>Offline"]].map(([c,l],i) => (
+        <span key={i} className={`badge ${c}`} dangerouslySetInnerHTML={{ __html: l }}/>
+      ))}
+      <span className="badge badge-purple" style={{ borderRadius:6 }}>v3.1</span>
+      <span className="badge badge-info">New</span>
+    </div>
+  );
+}
+
+const BADGE_CODE = `import { Badge } from "@devui/react";
+
+<Badge variant="default">Default</Badge>
+<Badge variant="success" dot>Online</Badge>
+<Badge variant="warning" dot>Away</Badge>
+<Badge variant="error" dot>Offline</Badge>
+<Badge variant="info">New</Badge>
+<Badge variant="purple">Beta</Badge>`;
+
+// ── INPUT ──────────────────────────────────────────
+function InputDemo({ variant = 1 }) {
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const emailErr = email.length > 0 && !email.includes("@");
+  if (variant === 2) return (
+    <div style={{ display:"flex", flexDirection:"column", gap:12, width:"100%", maxWidth:320 }}>
+      <div className="input-group">
+        <label className="input-label">Search</label>
+        <div className="input-wrap">
+          <span className="input-icon">🔍</span>
+          <input className="input-field input-with-icon" placeholder="Search components…"/>
+        </div>
+      </div>
+      <div className="input-group">
+        <label className="input-label">Password</label>
+        <input type="password" className="input-field" placeholder="••••••••" value={pass} onChange={e=>setPass(e.target.value)}/>
+        {pass.length > 0 && pass.length < 8 && <span className="input-error">Min 8 characters required</span>}
+      </div>
+    </div>
+  );
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:12, width:"100%", maxWidth:320 }}>
+      <div className="input-group">
+        <label className="input-label">Email address</label>
+        <div className="input-wrap">
+          <span className="input-icon">✉</span>
+          <input type="email" className={`input-field input-with-icon${emailErr?" error":""}`} placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
+        </div>
+        {emailErr ? <span className="input-error">Enter a valid email address</span> : <span className="input-hint">We'll never share your email.</span>}
+      </div>
+      <div className="input-group">
+        <label className="input-label">Username</label>
+        <input className="input-field" placeholder="your_username" style={{ opacity:.5, cursor:"not-allowed" }} disabled/>
+        <span className="input-hint">Disabled state</span>
+      </div>
+    </div>
+  );
+}
+
+const INPUT_CODE = `import { Input } from "@devui/react";
+
+// With icon and validation
+<Input
+  label="Email address"
+  type="email"
+  leftIcon={<MailIcon />}
+  value={email}
+  onChange={setEmail}
+  error={!isValid && "Enter a valid email"}
+  hint="We'll never share your email."
+/>
+
+// Disabled
+<Input label="Username" disabled />`;
+
+/* ────────────────────────────────────────────────────────────
+   COMPONENT REGISTRY
+──────────────────────────────────────────────────────────── */
+const COMPONENTS = {
+  hero:     { label:"Hero",     count:5, Demo:HeroDemo,     code:HERO_CODE,     emoji:"🦸", variants:["Centered","Split","Minimal"], desc:"Eye-catching hero sections for landing pages." },
+  avatar:   { label:"Avatar",   count:4, Demo:AvatarDemo,   code:AVATAR_CODE,   emoji:"👤", variants:["Group","Sizes","Status"],    desc:"User avatars with group stacking and presence indicators." },
+  button:   { label:"Button",   count:8, Demo:ButtonDemo,   code:BUTTON_CODE,   emoji:"🔘", variants:["All variants","Sizes","States"], desc:"Fully-featured button component with all variants, sizes, and states." },
+  card:     { label:"Card",     count:6, Demo:CardDemo,     code:CARD_CODE,     emoji:"🃏", variants:["Blog","Stats","Media"],       desc:"Versatile card components for content and data display." },
+  features: { label:"Features", count:4, Demo:FeaturesDemo, code:FEATURES_CODE, emoji:"⭐", variants:["Grid","Icons"],               desc:"Feature grids to showcase your product's strengths." },
+  loading:  { label:"Loading",  count:4, Demo:LoadingDemo,  code:LOADING_CODE,  emoji:"⏳", variants:["Spinners","Progress","Bars"],  desc:"Loading states that keep users informed and engaged." },
+  modal:    { label:"Modal",    count:4, Demo:ModalDemo,    code:MODAL_CODE,    emoji:"🪟", variants:["Default","Confirm","Delete"],  desc:"Accessible modal dialogs with focus trapping and backdrop." },
+  nav:      { label:"Nav",      count:5, Demo:NavDemo,      code:NAV_CODE,      emoji:"🧭", variants:["Default","Rounded","Multi"],   desc:"Navigation bar components for every layout." },
+  tab:      { label:"Tab",      count:5, Demo:TabDemo,      code:TAB_CODE,      emoji:"📑", variants:["Underline","Pill","Vertical"], desc:"Tab components for organizing content into switchable panels." },
+  footer:   { label:"Footer",   count:3, Demo:FooterDemo,   code:FOOTER_CODE,   emoji:"📄", variants:["Full","Minimal"],             desc:"Footer components for landing pages and apps." },
+  badge:    { label:"Badge",    count:6, Demo:BadgeDemo,    code:BADGE_CODE,    emoji:"🏷",  variants:["Status","Variants"],          desc:"Status badges, tags, and labels." },
+  input:    { label:"Input",    count:5, Demo:InputDemo,    code:INPUT_CODE,    emoji:"📝", variants:["Default","Icon","Disabled"],   desc:"Input fields with validation, icons, and accessible labels." },
+};
+
+/* ────────────────────────────────────────────────────────────
+   OVERVIEW PAGE
+──────────────────────────────────────────────────────────── */
+function OverviewPage({ onSelect }) {
+  return (
+    <div>
+      <div className="page-header">
+        <h1 className="page-title">Components</h1>
+        <p className="page-sub">48+ production-ready components. Copy-paste into your project. Dark mode. Full TypeScript. WCAG 2.1 AA.</p>
+      </div>
+      <div className="comp-grid">
+        {Object.entries(COMPONENTS).map(([id, c]) => (
+          <div key={id} className="comp-card" onClick={() => onSelect(id)}>
+            <div className="comp-preview">
+              <div style={{ position:"relative", zIndex:1, transform:"scale(0.85)", transformOrigin:"center" }}>
+                <c.Demo variant={1}/>
+              </div>
+            </div>
+            <div className="comp-footer">
+              <span className="comp-name">{c.emoji} {c.label}</span>
+              <span className="comp-count">{c.count} variants</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   COMPONENT DETAIL PAGE
+──────────────────────────────────────────────────────────── */
+function ComponentPage({ id }) {
+  const comp = COMPONENTS[id];
+  const [variantIdx, setVariantIdx] = useState(0);
+  const [tab, setTab] = useState("preview");
+
+  if (!comp) return null;
+
+  return (
+    <div>
+      <div className="demo-header">
+        <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8 }}>
+          <span style={{ fontSize:28 }}>{comp.emoji}</span>
+          <h2 className="demo-title">{comp.label}</h2>
+          <span className="badge badge-purple">{comp.count} variants</span>
+        </div>
+        <p className="demo-desc">{comp.desc}</p>
+      </div>
+
+      {/* Variant selector */}
+      <div className="variants">
+        {comp.variants.map((v, i) => (
+          <button key={i} onClick={() => { setVariantIdx(i); setTab("preview"); }} className={`variant-btn${variantIdx===i?" active":""}`}>{v}</button>
+        ))}
+      </div>
+
+      {/* Preview / Code tabs */}
+      <div className="demo-tabs">
+        {["preview","code"].map(t => (
+          <button key={t} onClick={() => setTab(t)} className={`demo-tab${tab===t?" active":""}`}>
+            {t === "preview" ? "👁 Preview" : "⟨⟩ Code"}
+          </button>
+        ))}
+      </div>
+
+      {tab === "preview" ? (
+        <div className="demo-preview">
+          <comp.Demo variant={variantIdx + 1}/>
+        </div>
+      ) : (
+        <CodeBlock code={comp.code}/>
+      )}
+
+      {/* Props table for select components */}
+      {(id === "button" || id === "modal" || id === "input") && (
+        <div style={{ marginTop:28 }}>
+          <div style={{ fontSize:12, fontWeight:700, textTransform:"uppercase", letterSpacing:.7, color:"var(--text3)", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
+            Props
+            <div style={{ flex:1, height:1, background:"var(--border)" }}/>
+          </div>
+          <div style={{ border:"1px solid var(--border)", borderRadius:12, overflow:"hidden" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12.5 }}>
+              <thead>
+                <tr style={{ background:"var(--bg3)" }}>
+                  {["Prop","Type","Default","Description"].map(h => (
+                    <th key={h} style={{ textAlign:"left", padding:"9px 14px", fontSize:10.5, fontWeight:700, letterSpacing:.6, textTransform:"uppercase", color:"var(--text3)", borderBottom:"1px solid var(--border)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(id==="button" ? [
+                  ["variant","string",'"primary"','"primary" | "secondary" | "outline" | "ghost" | "danger"'],
+                  ["size","string",'"md"','"sm" | "md" | "lg"'],
+                  ["loading","boolean","false","Show spinner and disable interaction"],
+                  ["disabled","boolean","false","Disable the button"],
+                ] : id==="modal" ? [
+                  ["open","boolean","false","Controls modal visibility"],
+                  ["onClose","() => void","—","Called on backdrop click or ×"],
+                  ["title","string","—","Modal header title"],
+                  ["size","string",'"md"','"sm" | "md" | "lg" | "full"'],
+                ] : [
+                  ["label","string","—","Label text above the field"],
+                  ["error","string","—","Error message (also triggers red style)"],
+                  ["hint","string","—","Helper text below field"],
+                  ["disabled","boolean","false","Disable the field"],
+                  ["leftIcon","ReactNode","—","Icon on the left side"],
+                ]).map((row, i) => (
+                  <tr key={i} style={{ borderBottom:"1px solid var(--border)" }}>
+                    <td style={{ padding:"8px 14px" }}><code style={{ fontFamily:"'Geist Mono',monospace", fontSize:11.5, color:"var(--accent2)" }}>{row[0]}</code></td>
+                    <td style={{ padding:"8px 14px" }}><code style={{ fontFamily:"'Geist Mono',monospace", fontSize:11.5, color:"var(--green)" }}>{row[1]}</code></td>
+                    <td style={{ padding:"8px 14px" }}><code style={{ fontFamily:"'Geist Mono',monospace", fontSize:11.5, color:"var(--yellow)" }}>{row[2]}</code></td>
+                    <td style={{ padding:"8px 14px", color:"var(--text2)", fontSize:12 }}>{row[3]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Related components */}
+      <div style={{ marginTop:32 }}>
+        <div style={{ fontSize:12, fontWeight:700, textTransform:"uppercase", letterSpacing:.7, color:"var(--text3)", marginBottom:14, display:"flex", alignItems:"center", gap:8 }}>
+          Related
+          <div style={{ flex:1, height:1, background:"var(--border)" }}/>
+        </div>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+          {Object.entries(COMPONENTS).filter(([k]) => k !== id).slice(0,5).map(([k,c]) => (
+            <div key={k} className="comp-card" style={{ width:140, flexShrink:0 }}
+              onClick={() => { window.scrollTo({ top:0, behavior:"smooth" }); }}>
+              <div className="comp-preview" style={{ minHeight:80, padding:"14px 12px" }}>
+                <div style={{ fontSize:22 }}>{c.emoji}</div>
+              </div>
+              <div className="comp-footer" style={{ padding:"10px 12px" }}>
+                <span className="comp-name" style={{ fontSize:12 }}>{c.label}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────
+   SITE FOOTER
+──────────────────────────────────────────────────────────── */
+// function SiteFooter() {
+//   return (
+//     <footer className="site-footer">
+//       <div className="footer-inner">
+//         <div className="footer-top">
+//           <div className="footer-brand">
+//             <a href="#" className="logo" style={{ textDecoration:"none" }}>
+//               <div className="logo-dot"/>
+//               dev.UI
+//             </a>
+//             <p className="footer-tagline" style={{ marginTop:8 }}>Production-ready components for building modern dark-mode UIs. Copy, paste, ship.</p>
+//             <div className="footer-socials" style={{ marginTop:14 }}>
+//               {["𝕏","⭐","💬","📧"].map(i => <div key={i} className="social-btn">{i}</div>)}
+//             </div>
+//           </div>
+//           {[
+//             { title:"Components", links:["Hero","Avatar","Button","Card","Features","Modal"] },
+//             { title:"Resources", links:["Documentation","Templates","Changelog","Roadmap"] },
+//             { title:"Company", links:["About","Blog","GitHub","Twitter"] },
+//           ].map(col => (
+//             <div key={col.title}>
+//               <div className="footer-col-title">{col.title}</div>
+//               <div className="footer-links">
+//                 {col.links.map(l => <button key={l} className="footer-link">{l}</button>)}
+//               </div>
+//             </div>
+//           ))}
+//         </div>
+//         <div className="footer-bottom">
+//           <span className="footer-copy">© 2025 dev.UI. Released under the MIT License.</span>
+//           <div style={{ display:"flex", gap:12, alignItems:"center" }}>
+//             {["Privacy","Terms","License"].map(l => (
+//               <span key={l} style={{ fontSize:12, color:"var(--text3)", cursor:"pointer" }}>{l}</span>
+//             ))}
+//           </div>
+//         </div>
+//       </div>
+//     </footer>
+//   );
+// }
+
+/* ────────────────────────────────────────────────────────────
+   ROOT APP
+──────────────────────────────────────────────────────────── */
+export default function DevUI() {
+  const [selected, setSelected] = useState("overview");
+  const [search, setSearch] = useState("");
+  const mainRef = useRef(null);
+
+  const select = (id) => {
+    setSelected(id);
+    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const filteredNav = NAV.filter(n =>
+    n.label.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const sections = [...new Set(filteredNav.map(n => n.section))];
 
   return (
     <>
-      <style>{styles}</style>
-      <div className="cd-overlay" onClick={()=>setMobileSidebar(false)} style={{ display: mobileSidebar ? "block" : "none" }}/>
+      <style>{GLOBAL_CSS}</style>
 
-      <div className="cd-root">
-        {/* ── SIDEBAR ── */}
-        <div className={`cd-sidebar${mobileSidebar?" open":""}`}>
-          <div className="cd-sidebar-logo">
-            <div style={{ width:30, height:30, borderRadius:8, background:"#111110", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>⬡</div>
-            <div>
-              <div style={{ fontSize:13.5, fontWeight:700, color:"#111" }}>UIKit</div>
-              <div style={{ fontSize:10.5, color:"#B0ACA6" }}>v3.1.0</div>
+      {/* TOP NAVBAR */}
+      <nav className="topnav">
+        <a href="#" className="logo" onClick={e => { e.preventDefault(); select("overview"); }}>
+          <div className="logo-dot"/>
+          dev.UI
+        </a>
+        <div className="nav-links">
+          <button className="nav-link active" onClick={() => select("overview")}>Components</button>
+          <button className="nav-link">Templates</button>
+          <button className="nav-link">Docs</button>
+        </div>
+        <div style={{ flex:1 }}/>
+        <a href="#" className="github-btn">
+          <span>⭐</span> Star on GitHub
+        </a>
+      </nav>
+
+      {/* LAYOUT */}
+      <div className="layout" style={{ flex:1 }}>
+        {/* SIDEBAR */}
+        <aside className="sidebar">
+          <div className="sidebar-header">
+            <div className="sidebar-search">
+              <span style={{ fontSize:13 }}>🔍</span>
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"/>
+              {search && <span style={{ cursor:"pointer", color:"var(--text3)", fontSize:13 }} onClick={() => setSearch("")}>×</span>}
             </div>
           </div>
-          <div className="cd-sidebar-search">
-            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search components…"/>
-          </div>
-          <div className="cd-sidebar-nav">
-            {filtered.map(group => (
-              <div key={group.section} className="cd-nav-group">
-                <div className="cd-nav-section">{group.section}</div>
-                {group.items.map(item => (
-                  <button key={item} onClick={()=>select(item)} className={`cd-nav-btn${selected===item?" active":""}`}>{item}</button>
+          <nav className="sidebar-nav">
+            {sections.map(section => (
+              <div key={section} className="nav-group">
+                <div className="sidebar-section">{section}</div>
+                {filteredNav.filter(n => n.section === section).map(n => (
+                  <button key={n.id} onClick={() => select(n.id)} className={`nav-item${selected===n.id?" active":""}`}>
+                    <span>{n.label}</span>
+                    {n.count && <span className="nav-badge">{n.count}</span>}
+                  </button>
                 ))}
               </div>
             ))}
-          </div>
-        </div>
+            {filteredNav.length === 0 && (
+              <div style={{ padding:"20px 10px", textAlign:"center", color:"var(--text3)", fontSize:13 }}>No results</div>
+            )}
+          </nav>
+        </aside>
 
-        {/* ── MAIN ── */}
-        <div className="cd-main">
-          <div className="cd-topbar">
-            <button className="cd-mobile-toggle" onClick={()=>setMobileSidebar(true)}>☰ Menu</button>
-            <div style={{ flex:1 }}/>
-            {FRAMEWORKS.map(f => (
-              <button key={f} onClick={()=>setFw(f)} className={`cd-fw-btn${fw===f?" active":""}`}>{f}</button>
-            ))}
-            <div style={{ width:1, height:20, background:"#E9E7E3", margin:"0 4px" }}/>
-            <span className="cd-badge-live">Interactive</span>
-            <a href="#" onClick={e=>e.preventDefault()} style={{ fontSize:12, color:"#888", textDecoration:"none", padding:"5px 8px" }}>GitHub ↗</a>
-          </div>
-
-          {/* Scrollable content */}
-          <div className="cd-content" ref={contentRef}>
-            <div className="cd-article">
-              {/* Breadcrumb */}
-              <div style={{ fontSize:12, color:"#B0ACA6", marginBottom:16, display:"flex", alignItems:"center", gap:5 }}>
-                <span>UIKit</span><span>›</span>
-                <span>{NAV_GROUPS.find(g=>g.items.includes(selected))?.section||"Docs"}</span>
-                {selected!=="Overview" && <><span>›</span><span style={{ color:"#555" }}>{selected}</span></>}
-              </div>
-
-              {/* Header */}
-              <h1 style={{ fontSize:28, fontWeight:700, color:"#111110", marginBottom:8, letterSpacing:-.5 }}>{selected}</h1>
-              <p style={{ fontSize:14.5, color:"#6B6863", lineHeight:1.6, marginBottom:20, maxWidth:580 }}>{meta.desc}</p>
-
-              {selected!=="Overview" && (
-                <div className="cd-import-pill">
-                  <span style={{ color:"#B0ACA6", fontFamily:"inherit" }}>import</span>
-                  <span style={{ color:"#111" }}>{"{ "}{selected}{" }"}</span>
-                  <span style={{ color:"#B0ACA6" }}>from</span>
-                  <span style={{ color:"#10b981" }}>"@uikit/{fw==="HTML"?"css":fw.toLowerCase()}"</span>
-                </div>
-              )}
-
-              {/* Preview */}
-              <div className="cd-section" id="preview">
-                <div className="cd-section-title">Live Preview</div>
-                <div className="cd-preview-box">
-                  <div className="cd-preview-header">
-                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                      <div style={{ width:10, height:10, borderRadius:"50%", background:"#f87171" }}/>
-                      <div style={{ width:10, height:10, borderRadius:"50%", background:"#fbbf24" }}/>
-                      <div style={{ width:10, height:10, borderRadius:"50%", background:"#34d399" }}/>
-                    </div>
-                    <div style={{ fontSize:11.5, color:"#B0ACA6", fontWeight:500 }}>Interactive · {fw}</div>
-                    <div style={{ display:"flex", gap:4 }}>
-                      {FRAMEWORKS.map(f => (
-                        <button key={f} onClick={()=>setFw(f)} className={`cd-fw-btn${fw===f?" active":""}`} style={{ fontSize:11, padding:"3px 8px" }}>{f}</button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="cd-preview-inner">
-                    <PreviewComp />
-                  </div>
-                </div>
-              </div>
-
-              {/* Code */}
-              <div className="cd-section" id="code">
-                <div className="cd-section-title">Code</div>
-                <div className="cd-code-box">
-                  <div className="cd-code-tabs">
-                    {FRAMEWORKS.map(f => (
-                      <button key={f} onClick={()=>setFw(f)} className={`cd-code-tab${fw===f?" active":""}`}>{f}</button>
-                    ))}
-                    <button className="cd-code-copy" onClick={copy}>{copied?"✓ Copied":"⧉ Copy"}</button>
-                  </div>
-                  <div className="cd-code-body">
-                    <pre><Highlight code={code}/></pre>
-                  </div>
-                </div>
-              </div>
-
-              {/* Props */}
-              {props.length>0 && (
-                <div className="cd-section" id="props">
-                  <div className="cd-section-title">Properties</div>
-                  <div style={{ border:"1.5px solid #E9E7E3", borderRadius:12, overflow:"hidden", background:"#fff" }}>
-                    <table className="cd-props-table">
-                      <thead>
-                        <tr>
-                          <th>Prop</th><th>Type</th><th>Default</th><th>Description</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {props.map(p => (
-                          <tr key={p.name}>
-                            <td><span className="cd-prop-name">{p.name}</span></td>
-                            <td><span className="cd-prop-type">{p.type}</span></td>
-                            <td><span className="cd-prop-def">{p.def}</span></td>
-                            <td style={{ fontSize:12 }}>{p.desc}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
+        {/* MAIN CONTENT */}
+        <div style={{ flex:1, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+          <div ref={mainRef} style={{ flex:1, overflowY:"auto" }}>
+            <div className="content">
+              {selected === "overview"
+                ? <OverviewPage onSelect={select}/>
+                : <ComponentPage id={selected}/>
+              }
             </div>
-
-            {/* ── RIGHT TOC ── */}
-            <div className="cd-toc">
-              <div className="cd-toc-title">On this page</div>
-              {["Live Preview","Code",...(props.length>0?["Properties"]:[])].map((sec,i) => (
-                <button key={i} className="cd-toc-btn">{sec}</button>
-              ))}
-              <div style={{ height:1, background:"#E9E7E3", margin:"14px 0" }}/>
-              <div className="cd-toc-title">Other Components</div>
-              {ALL_ITEMS.filter(c=>c!==selected).slice(0,9).map(c => (
-                <button key={c} onClick={()=>select(c)} className="cd-toc-btn">{c}</button>
-              ))}
-            </div>
+            {/* <SiteFooter/> */}
           </div>
         </div>
       </div>
