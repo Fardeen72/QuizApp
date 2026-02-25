@@ -12,7 +12,31 @@ const LEVEL_META = {
   hard:   { label: "Hard",   color: "#EF4444", bg: "#FEF2F2" },
 };
 
-const MEDALS = ["🥇", "🥈", "🥉"];
+const MEDALS =({ rank }) => {
+  const styles = {
+    1: { fill: "#FACC15", stroke: "#CA8A04", text: "1", color: "#78350F" },
+    2: { fill: "#E5E7EB", stroke: "#9CA3AF", text: "2", color: "#374151" },
+    3: { fill: "#D97706", stroke: "#92400E", text: "3", color: "#451A03" }
+  };
+
+  const m = styles[rank];
+
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" fill={m.fill} stroke={m.stroke} strokeWidth="2" />
+      <text
+        x="12"
+        y="16"
+        textAnchor="middle"
+        fontSize="10"
+        fontWeight="700"
+        fill={m.color}
+      >
+        {m.text}
+      </text>
+    </svg>
+  );
+};
 
 export default function Leaderboard() {
   const navigate = useNavigate();
